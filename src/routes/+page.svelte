@@ -19,6 +19,14 @@
       maxSpeed: 6,
       damping: 0.9995,
       dtClamp: 1 / 30
+    },
+    patterns: {
+      idleTimeout: 5,       // seconds before patterns start
+      patternDuration: 30,  // seconds each pattern displays
+      transitionSpeed: 0.02 // speed of transition to pattern positions
+    },
+    physics: {
+      collisions: false // disable photo hitbox bouncing (photo-on-photo collisions)
     }
   };
   // =============================
@@ -63,33 +71,111 @@
     index: number;
     showCaption: boolean;
     scale: number;
-    targetX?: number; // For "HI" formation
-    targetY?: number; // For "HI" formation
+    targetX?: number;
+    targetY?: number;
   };
 
   let photoStates: PhotoState[] = [];
   let nodes: HTMLElement[] = [];
   let lastActivityTime = Date.now();
-  let isFormingHI = false;
-  let hiFormationProgress = 0;
+  let isFormingPattern = false;
+  let currentPatternIndex = 0;
+  let patternStartTime = 0;
   let isBrowser = false;
 
-  // Define "HI" letter positions (scaled to 0-100 coordinate system)
-  const hiPositions = [
-    // Letter H - left vertical
-    { x: 20, y: 30 }, { x: 20, y: 40 }, { x: 20, y: 50 }, { x: 20, y: 60 }, { x: 20, y: 70 },
-    // Letter H - right vertical
-    { x: 30, y: 30 }, { x: 30, y: 40 }, { x: 30, y: 50 }, { x: 30, y: 60 }, { x: 30, y: 70 },
-    // Letter H - horizontal bar
-    { x: 25, y: 50 },
-    // Letter I - vertical bar
-    { x: 40, y: 30 }, { x: 40, y: 40 }, { x: 40, y: 50 }, { x: 40, y: 60 }, { x: 40, y: 70 },
-    // Letter I - top and bottom bars
-    { x: 38, y: 30 }, { x: 42, y: 30 }, { x: 38, y: 70 }, { x: 42, y: 70 },
-    // Remaining photos form background pattern
-    { x: 60, y: 30 }, { x: 70, y: 40 }, { x: 80, y: 50 }, { x: 70, y: 60 }, { x: 60, y: 70 },
-    { x: 50, y: 25 }, { x: 50, y: 75 }
+  // ===== PATTERNS (logical, recognizable shapes; positioned to avoid inner box) =====
+  const patterns = [
+    {
+      name: "HI",
+      positions: [
+        // H (left of center)
+        { x: 16, y: 30 }, { x: 16, y: 40 }, { x: 16, y: 50 }, { x: 16, y: 60 }, { x: 16, y: 70 },
+        { x: 26, y: 30 }, { x: 26, y: 40 }, { x: 26, y: 50 }, { x: 26, y: 60 }, { x: 26, y: 70 },
+        { x: 21, y: 50 },
+        // I (right of center)
+        { x: 74, y: 30 }, { x: 74, y: 40 }, { x: 74, y: 50 }, { x: 74, y: 60 }, { x: 74, y: 70 },
+        { x: 70, y: 30 }, { x: 78, y: 30 }, { x: 70, y: 70 }, { x: 78, y: 70 },
+        // filler/background
+        { x: 50, y: 20 }, { x: 50, y: 80 }, { x: 10, y: 20 }, { x: 90, y: 80 }, { x: 10, y: 80 },
+        { x: 90, y: 20 }, { x: 50, y: 50 }
+      ]
+    },
+    {
+      name: "Circle",
+      positions: [
+        // outer ring around the inner box
+        { x: 50, y: 15 }, { x: 62, y: 20 }, { x: 72, y: 30 }, { x: 80, y: 43 }, { x: 83, y: 57 },
+        { x: 80, y: 70 }, { x: 71, y: 82 }, { x: 60, y: 89 }, { x: 50, y: 90 }, { x: 40, y: 88 },
+        { x: 29, y: 80 }, { x: 20, y: 68 }, { x: 16, y: 55 }, { x: 18, y: 41 }, { x: 26, y: 29 },
+        { x: 38, y: 20 }, { x: 48, y: 16 },
+        // inner ring (still outside inner box)
+        { x: 50, y: 28 }, { x: 58, y: 33 }, { x: 65, y: 42 }, { x: 67, y: 54 }, { x: 63, y: 65 },
+        { x: 55, y: 72 }, { x: 45, y: 73 }, { x: 36, y: 67 }, { x: 32, y: 56 }, { x: 34, y: 44 }
+      ].slice(0, 27)
+    },
+    {
+      name: "Spiral",
+      positions: (() => {
+        const spiral = [];
+        const centerX = 50, centerY = 50;
+        const turns = 3, points = 27;
+        // grow a spiral that skirts the inner box (radius offset starts outside it)
+        const minR = 22; // roughly half of inner width when CONFIG.inner.width ~50
+        for (let i = 0; i < points; i++) {
+          const angle = (i / points) * Math.PI * 2 * turns;
+          const radius = minR + (i / points) * 28;
+          spiral.push({ x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius });
+        }
+        return spiral;
+      })()
+    },
+    {
+      name: "Frame",
+      positions: (() => {
+        // a rectangular frame close to the edges—very readable
+        const pts = [];
+        const cols = 7, rows = 5;
+        const startX = 6, endX = 94, startY = 8, endY = 92;
+        const stepX = (endX - startX) / (cols - 1);
+        const stepY = (endY - startY) / (rows - 1);
+        for (let c = 0; c < cols && pts.length < 27; c++) pts.push({ x: startX + c * stepX, y: startY });
+        for (let r = 1; r < rows - 1 && pts.length < 27; r++) pts.push({ x: endX, y: startY + r * stepY });
+        for (let c = cols - 1; c >= 0 && pts.length < 27; c--) pts.push({ x: startX + c * stepX, y: endY });
+        for (let r = rows - 2; r > 0 && pts.length < 27; r--) pts.push({ x: startX, y: startY + r * stepY });
+        return pts.slice(0, 27);
+      })()
+    },
+    {
+      name: "Heart",
+      positions: (() => {
+        const heart = [];
+        const centerX = 50, centerY = 52, size = 2.6; // tuned to sit nicely around inner box
+        for (let i = 0; i < 27; i++) {
+          const t = (i / 26) * Math.PI * 2;
+          const x = centerX + size * 16 * Math.pow(Math.sin(t), 3);
+          const y = centerY - size * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+          heart.push({ x, y });
+        }
+        return heart;
+      })()
+    },
+    {
+      name: "Arrow",
+      positions: [
+        // shaft across the screen, clear of inner box
+        { x: 12, y: 24 }, { x: 22, y: 24 }, { x: 32, y: 24 }, { x: 42, y: 24 }, { x: 52, y: 24 },
+        { x: 62, y: 24 }, { x: 72, y: 24 }, { x: 82, y: 24 },
+        // head
+        { x: 82, y: 24 }, { x: 78, y: 18 }, { x: 78, y: 30 },
+        { x: 86, y: 16 }, { x: 86, y: 22 }, { x: 86, y: 26 }, { x: 86, y: 32 }, { x: 88, y: 24 },
+        // tail fletching
+        { x: 8, y: 20 }, { x: 8, y: 24 }, { x: 8, y: 28 },
+        { x: 4, y: 18 }, { x: 4, y: 22 }, { x: 4, y: 26 }, { x: 4, y: 30 },
+        { x: 0 + 2, y: 20 }, { x: 2, y: 24 }, { x: 2, y: 28 }
+      ]
+    }
   ];
+  // ===================================================
 
   // Inner box derived values (4:3 ratio, centered)
   function getInner() {
@@ -160,7 +246,10 @@
     return Math.max(lo, Math.min(hi, val));
   }
 
+  // Do not bounce off inner box while forming patterns (so shapes aren’t interrupted)
   function bounceOffInnerBox(p: PhotoState) {
+    if (isFormingPattern) return;
+
     const inner = getInner();
     const rEff = (p.size / 2) * p.scale;
     const left = inner.x;
@@ -185,6 +274,7 @@
     }
   }
 
+  // Collision solver kept for reference but never called when collisions=false
   function resolveCollisions(states: PhotoState[]) {
     for (let i = 0; i < states.length; i++) {
       for (let j = i + 1; j < states.length; j++) {
@@ -216,46 +306,60 @@
     }
   }
 
-  function formHI() {
-    isFormingHI = true;
-    hiFormationProgress = 0;
-    
-    // Assign target positions for each photo
+  function startPatternCycle() {
+    isFormingPattern = true;
+    patternStartTime = Date.now();
+    currentPatternIndex = 0;
+    applyPattern(patterns[currentPatternIndex]);
+  }
+
+  function applyPattern(pattern: typeof patterns[0]) {
     photoStates.forEach((p, i) => {
-      const targetPos = hiPositions[i % hiPositions.length];
-      p.targetX = targetPos.x;
-      p.targetY = targetPos.y;
-      // Slow down significantly for formation
-      p.vx *= 0.1;
-      p.vy *= 0.1;
+      const targetPos = pattern.positions[i % pattern.positions.length];
+      p.targetX = clamp(targetPos.x, p.size/2, 100 - p.size/2);
+      p.targetY = clamp(targetPos.y, p.size/2, 100 - p.size/2);
+      // keep some motion so they flow into place
+      p.vx *= 0.3;
+      p.vy *= 0.3;
     });
+  }
+
+  function nextPattern() {
+    currentPatternIndex = (currentPatternIndex + 1) % patterns.length;
+    applyPattern(patterns[currentPatternIndex]);
+    patternStartTime = Date.now();
   }
 
   function stepPhysics(dt: number) {
     const now = Date.now();
     const inactiveTime = (now - lastActivityTime) / 1000; // seconds
     
-    // Check for inactivity and start forming "HI" after 2 minutes
-    if (!isFormingHI && inactiveTime > 120) {
-      formHI();
+    // Start pattern cycle after idle timeout
+    if (!isFormingPattern && inactiveTime > CONFIG.patterns.idleTimeout) {
+      startPatternCycle();
+    }
+
+    // Cycle patterns over time while in pattern mode
+    if (isFormingPattern && (now - patternStartTime) / 1000 > CONFIG.patterns.patternDuration) {
+      nextPattern();
     }
 
     for (const p of photoStates) {
-      if (isFormingHI && p.targetX !== undefined && p.targetY !== undefined) {
-        // Move towards target position for "HI" formation
+      if (isFormingPattern && p.targetX !== undefined && p.targetY !== undefined) {
+        // Move towards target (pattern formation)
         const dx = p.targetX - p.x;
         const dy = p.targetY - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist > 1) {
-          // Move towards target with easing
-          p.vx += dx * 0.02;
-          p.vy += dy * 0.02;
-          // Strong damping for smooth formation
-          p.vx *= 0.8;
-          p.vy *= 0.8;
+        if (dist > 0.5) {
+          p.vx += dx * CONFIG.patterns.transitionSpeed;
+          p.vy += dy * CONFIG.patterns.transitionSpeed;
+          p.vx *= 0.85;
+          p.vy *= 0.85;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
         } else {
-          // Snap to position when close enough
+          // Snap when close
           p.x = p.targetX;
           p.y = p.targetY;
           p.vx = 0;
@@ -275,10 +379,12 @@
       if (p.y - rEff < 0)        { p.y = rEff;        p.vy =  Math.abs(p.vy); }
       else if (p.y + rEff > 100) { p.y = 100 - rEff;  p.vy = -Math.abs(p.vy); }
 
+      // Only bounce off inner box during free motion (not patterns)
       bounceOffInnerBox(p);
     }
 
-    if (!isFormingHI) {
+    // Disable photo hitbox bouncing entirely if configured
+    if (!isFormingPattern && CONFIG.physics.collisions) {
       resolveCollisions(photoStates);
     }
 
@@ -305,14 +411,11 @@
   function handleMouseEnter(i: number) {
     photoStates[i].showCaption = true;
     photoStates[i].scale = CONFIG.hover.scale;
-    lastActivityTime = Date.now(); // Reset inactivity timer
-    if (isFormingHI) {
-      // Break out of "HI" formation on interaction
-      isFormingHI = false;
-      photoStates.forEach(p => {
-        p.targetX = undefined;
-        p.targetY = undefined;
-      });
+    lastActivityTime = Date.now();
+    if (isFormingPattern) {
+      // Break out of pattern mode on interaction
+      isFormingPattern = false;
+      photoStates.forEach(p => { p.targetX = undefined; p.targetY = undefined; });
     }
   }
 
@@ -323,13 +426,9 @@
 
   function handleInteraction() {
     lastActivityTime = Date.now();
-    if (isFormingHI) {
-      // Break out of "HI" formation on any interaction
-      isFormingHI = false;
-      photoStates.forEach(p => {
-        p.targetX = undefined;
-        p.targetY = undefined;
-      });
+    if (isFormingPattern) {
+      isFormingPattern = false;
+      photoStates.forEach(p => { p.targetX = undefined; p.targetY = undefined; });
     }
   }
 
@@ -372,7 +471,6 @@
     if (browser) {
       initializePhotos(); 
       rafId = requestAnimationFrame(tick);
-      // Track any user interaction
       document.addEventListener('mousemove', handleInteraction);
       document.addEventListener('click', handleInteraction);
       document.addEventListener('keydown', handleInteraction);
@@ -398,7 +496,7 @@
   <div class="bg"></div>
 
   <!-- Full screen stage -->
-  <div class="stage">
+  <div class="stage" class:patterning={isFormingPattern}>
     <!-- Inner box outline -->
     <svg class="constellation" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       {#key CONFIG.inner.width}
@@ -408,7 +506,8 @@
             y={inner.y}
             width={inner.width}
             height={inner.height}
-            class="inner-box" rx="16" ry="16"
+            class="inner-box"
+            rx="16" ry="16"
           />
         {/await}
       {/key}
@@ -419,6 +518,7 @@
       {#await Promise.resolve(getInner()) then inner}
         <div
           class="center-box"
+          class:patterning={isFormingPattern}
           style="
             left:{inner.x}%;
             top:{inner.y}%;
@@ -459,12 +559,12 @@
               }}
               tabindex="0"
               role="button"
-              aria-label={`View ${captions[i]}`}
+              aria-label={`View ${captions[i] ?? `Photo ${i + 1}`}`}
             >
-              <img src={images[i]} alt={`${captions[i]} - gallery image ${i + 1}`} loading="lazy" decoding="async" />
+              <img src={images[i]} alt={`${(captions[i] ?? "Gallery image")} - gallery image ${i + 1}`} loading="lazy" decoding="async" />
               <div class="gloss"></div>
               {#if state.showCaption}
-                <figcaption class="caption">{captions[i]}</figcaption>
+                <figcaption class="caption">{captions[i] ?? `Photo ${i + 1}`}</figcaption>
               {/if}
             </figure>
           </div>
@@ -522,32 +622,56 @@
   /* Full screen stage */
   .stage{
     position: absolute;
-    inset: 0; /* top:0; right:0; bottom:0; left:0 */
+    inset: 0;
     width: 100vw;
     height: 100vh;
     z-index: 1;
     margin: 0;
     overflow: hidden;
+    transition: filter 240ms ease;
   }
+  .stage.patterning { filter: none; }
 
   .constellation{ position:absolute; inset:0; z-index:2; pointer-events:none; }
-  .inner-box { fill:none; stroke:var(--box-glow); stroke-width:1.2; vector-effect:non-scaling-stroke;
-               filter: drop-shadow(0 0 12px var(--box-glow)); }
+  .inner-box {
+    fill:none;
+    stroke:var(--box-glow);
+    stroke-width:1.2;
+    vector-effect:non-scaling-stroke;
+    filter: drop-shadow(0 0 12px var(--box-glow));
+    transition: opacity 240ms ease;
+    opacity: 1;
+  }
+  /* Much more transparent during cycles */
+  .stage.patterning .inner-box {
+    opacity: 0.18;
+  }
 
   .center-box{
     position:absolute;
     z-index:3; display:flex; justify-content:center; align-items:center;
-    background: rgba(34,36,42,0.85); backdrop-filter: blur(12px);
+    background: rgba(34,36,42,0.85);
+    backdrop-filter: blur(12px);
     border: 1.5px solid var(--box-glow); border-radius: 16px;
     box-shadow: 0 0 40px rgba(194,31,31,0.15),
                 inset 0 1px 0 rgba(255,255,255,0.08),
                 inset 0 0 20px rgba(194,31,31,0.05);
+    transition: background 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
   }
+  /* Fade the card way down during pattern cycles for legibility */
+  .center-box.patterning{
+    background: rgba(34,36,42,0.1);
+    border-color: rgba(194,31,31,0.20);
+    box-shadow: 0 0 20px rgba(194,31,31,0.08),
+                inset 0 1px 0 rgba(255,255,255,0.04),
+                inset 0 0 10px rgba(194,31,31,0.03);
+  }
+
   .center-content{ display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:clamp(1rem, 3vmin, 2rem); width:100%; }
   .name{ font-size: clamp(1.5rem, 6vmin, 4rem); line-height:.95; margin:0 0 .5rem 0; letter-spacing:.04em;
          background: linear-gradient(180deg, #f3f3f6, #c7c9d3 65%, #9ea3b1);
          -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .tag{ margin:0 0 1.2rem 0; color:var(--muted); font-size: clamp(.75rem, 1.8vmin, 1rem); }
+  .tag{ margin:0 0 1.2rem 0; color: var(--muted); font-size: clamp(.75rem, 1.8vmin, 1rem); }
   .links{ display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; }
   .pill{
     display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:999px;
@@ -558,10 +682,7 @@
     font-size: clamp(.7rem, 1.6vmin, .9rem);
   }
   .pill:hover{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(194,31,31,.35), inset 0 0 0 1px rgba(194,31,31,.5); }
-  .pill:focus-visible {
-    outline: 2px solid var(--glow-red);
-    outline-offset: 2px;
-  }
+  .pill:focus-visible { outline: 2px solid var(--glow-red); outline-offset: 2px; }
   .pill svg{ width:16px; height:16px; fill: currentColor; }
 
   .field{ position:absolute; inset:0; z-index:2; pointer-events:none; }
@@ -584,10 +705,7 @@
     box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6);
     z-index:25;
   }
-  .thumb:focus-visible {
-    outline: 2px solid var(--glow-red);
-    outline-offset: 2px;
-  }
+  .thumb:focus-visible { outline: 2px solid var(--glow-red); outline-offset: 2px; }
 
   .thumb img{ width:100%; height:100%; object-fit:cover; display:block; filter: saturate(.95) contrast(1.05); }
   .thumb .gloss{
@@ -607,33 +725,16 @@
   }
   @keyframes fadeIn { from { opacity:0; transform: translate(-50%, calc(100% + 8px)); } to { opacity:1; transform: translate(-50%, 100%); } }
 
-  /* Mobile responsiveness */
+  /* Mobile tweaks */
   @media (max-width: 768px) {
-    .center-box {
-      border-radius: 12px;
-    }
-    .links{
-      gap: .5rem;
-    }
-    .pill{
-      padding: .4rem .8rem;
-    }
+    .center-box { border-radius: 12px; }
+    .links{ gap: .5rem; }
+    .pill{ padding: .4rem .8rem; }
   }
-
   @media (max-width: 480px) {
-    .name{
-      font-size: clamp(1.2rem, 5vmin, 3rem);
-    }
-    .tag{
-      margin-bottom: 1rem;
-    }
-    .links{
-      flex-direction: column;
-      align-items: center;
-    }
-    .caption{
-      font-size: .6rem;
-      padding: .3rem .6rem;
-    }
+    .name{ font-size: clamp(1.2rem, 5vmin, 3rem); }
+    .tag{ margin-bottom: 1rem; }
+    .links{ flex-direction: column; align-items: center; }
+    .caption{ font-size: .6rem; padding: .3rem .6rem; }
   }
 </style>
