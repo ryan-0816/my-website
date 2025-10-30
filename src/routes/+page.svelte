@@ -1,32 +1,24 @@
 <script lang="ts">
   // ===== ONE PLACE TO EDIT =====
   const CONFIG = {
-    stage: {
-      /** Visible bounce arena size: used for .stage width/height via CSS vars */
-      size: 100 // percent of vmin/vh (100 => min(100vmin, 100vh))
-    },
     hover: {
-      scale: 2.0,  // NEW: Scale factor on hover
-      captionDelay: 0, // NEW: Optional delay for caption appearance
+      scale: 1.6,
+      captionDelay: 0
     },
     inner: {
-      /** Inner box (glass card AND physics obstacle), in % of stage */
-      x: 35,     // left
-      y: 30,     // top
-      width: 40, // width
-      height: 30 // height
+      width: 50 // % of stage width; height will be width * 0.75 to keep 4:3 ratio
     },
     spawn: {
-      padding: 3,         // extra % clearance around inner box when spawning
-      minSize: 8,        // photo size % (roughly 2x larger)
-      maxSize: 14,
-      minDistance: 24     // increase separation to match bigger photos
+      padding: 3,
+      minSize: 6,
+      maxSize: 10,
+      minDistance: 16
     },
     motion: {
-      minSpeed: 2,  // % per second
+      minSpeed: 2,
       maxSpeed: 6,
       damping: 0.9995,
-      dtClamp: 1 / 30 // cap dt to ~33ms steps to avoid teleports
+      dtClamp: 1 / 30
     }
   };
   // =============================
@@ -63,27 +55,60 @@
   // =============================
 
   type PhotoState = {
-    x: number;   // % of stage width
-    y: number;   // % of stage height
-    size: number; // % (width = height = size)
-    vx: number;  // % per second
-    vy: number;  // % per second
+    x: number;
+    y: number;
+    size: number;
+    vx: number;
+    vy: number;
     index: number;
     showCaption: boolean;
+    scale: number;
+    targetX?: number; // For "HI" formation
+    targetY?: number; // For "HI" formation
   };
 
   let photoStates: PhotoState[] = [];
-  let nodes: HTMLElement[] = []; // refs to figure elements for cheap style updates
+  let nodes: HTMLElement[] = [];
+  let lastActivityTime = Date.now();
+  let isFormingHI = false;
+  let hiFormationProgress = 0;
+
+  // Define "HI" letter positions (scaled to 0-100 coordinate system)
+  const hiPositions = [
+    // Letter H - left vertical
+    { x: 20, y: 30 }, { x: 20, y: 40 }, { x: 20, y: 50 }, { x: 20, y: 60 }, { x: 20, y: 70 },
+    // Letter H - right vertical
+    { x: 30, y: 30 }, { x: 30, y: 40 }, { x: 30, y: 50 }, { x: 30, y: 60 }, { x: 30, y: 70 },
+    // Letter H - horizontal bar
+    { x: 25, y: 50 },
+    // Letter I - vertical bar
+    { x: 40, y: 30 }, { x: 40, y: 40 }, { x: 40, y: 50 }, { x: 40, y: 60 }, { x: 40, y: 70 },
+    // Letter I - top and bottom bars
+    { x: 38, y: 30 }, { x: 42, y: 30 }, { x: 38, y: 70 }, { x: 42, y: 70 },
+    // Remaining photos form background pattern
+    { x: 60, y: 30 }, { x: 70, y: 40 }, { x: 80, y: 50 }, { x: 70, y: 60 }, { x: 60, y: 70 },
+    { x: 50, y: 25 }, { x: 50, y: 75 }
+  ];
+
+  // Inner box derived values (4:3 ratio, centered)
+  function getInner() {
+    const width = clamp(CONFIG.inner.width, 10, 90);
+    const height = width * 0.75;
+    const x = (100 - width) / 2;
+    const y = (100 - height) / 2;
+    return { x, y, width, height };
+  }
 
   // Helpers
   const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
   function isOutsideInnerBox(x: number, y: number, radius: number): boolean {
     const pad = CONFIG.spawn.padding;
-    const left = CONFIG.inner.x - pad;
-    const right = CONFIG.inner.x + CONFIG.inner.width + pad;
-    const top = CONFIG.inner.y - pad;
-    const bottom = CONFIG.inner.y + CONFIG.inner.height + pad;
+    const inner = getInner();
+    const left = inner.x - pad;
+    const right = inner.x + inner.width + pad;
+    const top = inner.y - pad;
+    const bottom = inner.y + inner.height + pad;
     return !(
       x + radius > left &&
       x - radius < right &&
@@ -94,31 +119,28 @@
 
   function initializePhotos() {
     const { minSize, maxSize, minDistance } = CONFIG.spawn;
-    // For debugging one photo, uncomment:
-    // const list = images.slice(0, 1);
     const list = images;
-
     const tempStates: PhotoState[] = [];
 
     for (let i = 0; i < list.length; i++) {
       const size = rand(minSize, maxSize);
       const r = size / 2;
-      let x = 50, y = 50;
+      let x: number = rand(r + 1, 100 - (r + 1));
+      let y: number = rand(r + 1, 100 - (r + 1));
       let tries = 0;
 
-      // pick random positions until they're spaced out & outside inner box
       do {
         x = rand(r + 1, 100 - (r + 1));
         y = rand(r + 1, 100 - (r + 1));
         tries++;
-        if (tries > 800) break; // fail-safe
+        if (tries > 800) break;
       } while (
         !isOutsideInnerBox(x, y, r) ||
-        tempStates.some(p => {
+        tempStates.some((p) => {
           const dx = p.x - x;
           const dy = p.y - y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          return dist < (p.size / 2 + r + minDistance * 0.5);
+          return dist < p.size / 2 + r + minDistance * 0.5;
         })
       );
 
@@ -127,7 +149,7 @@
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
 
-      tempStates.push({ x, y, size, vx, vy, index: i, showCaption: false });
+      tempStates.push({ x, y, size, vx, vy, index: i, showCaption: false, scale: 1 });
     }
 
     photoStates = tempStates;
@@ -138,26 +160,27 @@
   }
 
   function bounceOffInnerBox(p: PhotoState) {
-    const r = p.size / 2;
-    const left = CONFIG.inner.x;
-    const right = CONFIG.inner.x + CONFIG.inner.width;
-       const top = CONFIG.inner.y;
-    const bottom = CONFIG.inner.y + CONFIG.inner.height;
+    const inner = getInner();
+    const rEff = (p.size / 2) * p.scale;
+    const left = inner.x;
+    const right = inner.x + inner.width;
+    const top = inner.y;
+    const bottom = inner.y + inner.height;
 
-    const insideX = p.x + r > left && p.x - r < right;
-    const insideY = p.y + r > top && p.y - r < bottom;
+    const insideX = p.x + rEff > left && p.x - rEff < right;
+    const insideY = p.y + rEff > top && p.y - rEff < bottom;
 
     if (insideX && insideY) {
-      const penLeft = Math.abs((p.x + r) - left);
-      const penRight = Math.abs(right - (p.x - r));
-      const penTop = Math.abs((p.y + r) - top);
-      const penBottom = Math.abs(bottom - (p.y - r));
+      const penLeft = Math.abs((p.x + rEff) - left);
+      const penRight = Math.abs(right - (p.x - rEff));
+      const penTop = Math.abs((p.y + rEff) - top);
+      const penBottom = Math.abs(bottom - (p.y - rEff));
       const minPen = Math.min(penLeft, penRight, penTop, penBottom);
 
-      if (minPen === penLeft)      { p.x = left - r;  p.vx = -Math.abs(p.vx); }
-      else if (minPen === penRight){ p.x = right + r; p.vx =  Math.abs(p.vx); }
-      else if (minPen === penTop)  { p.y = top - r;   p.vy = -Math.abs(p.vy); }
-      else                         { p.y = bottom + r;p.vy =  Math.abs(p.vy); }
+      if (minPen === penLeft)      { p.x = left - rEff;  p.vx = -Math.abs(p.vx); }
+      else if (minPen === penRight){ p.x = right + rEff; p.vx =  Math.abs(p.vx); }
+      else if (minPen === penTop)  { p.y = top - rEff;   p.vy = -Math.abs(p.vy); }
+      else                         { p.y = bottom + rEff;p.vy =  Math.abs(p.vy); }
     }
   }
 
@@ -165,7 +188,8 @@
     for (let i = 0; i < states.length; i++) {
       for (let j = i + 1; j < states.length; j++) {
         const a = states[i], b = states[j];
-        const ra = a.size / 2, rb = b.size / 2;
+        const ra = (a.size / 2) * a.scale;
+        const rb = (b.size / 2) * b.scale;
         const dx = b.x - a.x, dy = b.y - a.y;
         const dist2 = dx*dx + dy*dy;
         const minDist = ra + rb;
@@ -191,35 +215,80 @@
     }
   }
 
+  function formHI() {
+    isFormingHI = true;
+    hiFormationProgress = 0;
+    
+    // Assign target positions for each photo
+    photoStates.forEach((p, i) => {
+      const targetPos = hiPositions[i % hiPositions.length];
+      p.targetX = targetPos.x;
+      p.targetY = targetPos.y;
+      // Slow down significantly for formation
+      p.vx *= 0.1;
+      p.vy *= 0.1;
+    });
+  }
+
   function stepPhysics(dt: number) {
+    const now = Date.now();
+    const inactiveTime = (now - lastActivityTime) / 1000; // seconds
+    
+    // Check for inactivity and start forming "HI" after 2 minutes
+    if (!isFormingHI && inactiveTime > 120) {
+      formHI();
+    }
+
     for (const p of photoStates) {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
+      if (isFormingHI && p.targetX !== undefined && p.targetY !== undefined) {
+        // Move towards target position for "HI" formation
+        const dx = p.targetX - p.x;
+        const dy = p.targetY - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist > 1) {
+          // Move towards target with easing
+          p.vx += dx * 0.02;
+          p.vy += dy * 0.02;
+          // Strong damping for smooth formation
+          p.vx *= 0.8;
+          p.vy *= 0.8;
+        } else {
+          // Snap to position when close enough
+          p.x = p.targetX;
+          p.y = p.targetY;
+          p.vx = 0;
+          p.vy = 0;
+        }
+      } else {
+        // Normal physics
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+      }
 
-      const r = p.size / 2;
+      const rEff = (p.size / 2) * p.scale;
 
-      // Outer bounds (0..100 is the world in % of stage)
-      if (p.x - r < 0)        { p.x = r;        p.vx =  Math.abs(p.vx); }
-      else if (p.x + r > 100) { p.x = 100 - r;  p.vx = -Math.abs(p.vx); }
-      if (p.y - r < 0)        { p.y = r;        p.vy =  Math.abs(p.vy); }
-      else if (p.y + r > 100) { p.y = 100 - r;  p.vy = -Math.abs(p.vy); }
+      // Outer bounds (0..100 world)
+      if (p.x - rEff < 0)        { p.x = rEff;        p.vx =  Math.abs(p.vx); }
+      else if (p.x + rEff > 100) { p.x = 100 - rEff;  p.vx = -Math.abs(p.vx); }
+      if (p.y - rEff < 0)        { p.y = rEff;        p.vy =  Math.abs(p.vy); }
+      else if (p.y + rEff > 100) { p.y = 100 - rEff;  p.vy = -Math.abs(p.vy); }
 
-      // Inner box bounce
       bounceOffInnerBox(p);
     }
 
-    resolveCollisions(photoStates);
+    if (!isFormingHI) {
+      resolveCollisions(photoStates);
+    }
 
-    // Damping + clamp
     for (const p of photoStates) {
       p.vx *= CONFIG.motion.damping;
       p.vy *= CONFIG.motion.damping;
-      const r = p.size / 2;
-      p.x = clamp(p.x, r, 100 - r);
-      p.y = clamp(p.y, r, 100 - r);
+      const rEff = (p.size / 2) * p.scale;
+      p.x = clamp(p.x, rEff, 100 - rEff);
+      p.y = clamp(p.y, rEff, 100 - rEff);
     }
 
-    // Update DOM directly via inline styles (no re-render)
     for (let i = 0; i < photoStates.length; i++) {
       const p = photoStates[i];
       const el = nodes[i];
@@ -228,30 +297,41 @@
       el.style.top = p.y + '%';
       el.style.width = p.size + '%';
       el.style.height = p.size + '%';
+      el.style.setProperty('--scale', String(p.scale));
     }
   }
 
-  // Hover behavior: toggle caption only (cheap)
-  // Hover behavior: scale up and show caption
-  function handleMouseEnter(i: number) { 
+  function handleMouseEnter(i: number) {
     photoStates[i].showCaption = true;
-    // Apply scale via CSS custom property
-    const el = nodes[i];
-    if (el) {
-      el.style.setProperty('--scale', CONFIG.hover.scale.toString());
+    photoStates[i].scale = CONFIG.hover.scale;
+    lastActivityTime = Date.now(); // Reset inactivity timer
+    if (isFormingHI) {
+      // Break out of "HI" formation on interaction
+      isFormingHI = false;
+      photoStates.forEach(p => {
+        p.targetX = undefined;
+        p.targetY = undefined;
+      });
     }
   }
 
-  function handleMouseLeave(i: number) { 
+  function handleMouseLeave(i: number) {
     photoStates[i].showCaption = false;
-    // Reset scale
-    const el = nodes[i];
-    if (el) {
-      el.style.setProperty('--scale', '1');
+    photoStates[i].scale = 1;
+  }
+
+  function handleInteraction() {
+    lastActivityTime = Date.now();
+    if (isFormingHI) {
+      // Break out of "HI" formation on any interaction
+      isFormingHI = false;
+      photoStates.forEach(p => {
+        p.targetX = undefined;
+        p.targetY = undefined;
+      });
     }
   }
 
-  // RAF loop with dt clamp (avoids “teleport” after tab idle)
   let rafId = 0;
   let lastT = 0;
   function tick(ts: number) {
@@ -261,9 +341,6 @@
 
     stepPhysics(dt);
     rafId = requestAnimationFrame(tick);
-  }
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => { if (document.hidden) lastT = 0; });
   }
 
   const iconPath = (name: string) => {
@@ -281,52 +358,69 @@
   };
 
   import { onMount, onDestroy } from 'svelte';
-  onMount(() => { initializePhotos(); rafId = requestAnimationFrame(tick); });
-  onDestroy(() => { if (rafId) cancelAnimationFrame(rafId); });
+  onMount(() => { 
+    initializePhotos(); 
+    rafId = requestAnimationFrame(tick);
+    // Track any user interaction
+    document.addEventListener('mousemove', handleInteraction);
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('keydown', handleInteraction);
+  });
+  onDestroy(() => { 
+    if (rafId) cancelAnimationFrame(rafId);
+    document.removeEventListener('mousemove', handleInteraction);
+    document.removeEventListener('click', handleInteraction);
+    document.removeEventListener('keydown', handleInteraction);
+  });
 </script>
 
-<div class="page">
+<div class="page" on:mousemove={handleInteraction} on:click={handleInteraction}>
   <div class="bg"></div>
 
-  <!-- Set the arena size via CSS vars from CONFIG.stage.size -->
-  <div
-    class="stage"
-    style="--stage-vmin:{CONFIG.stage.size}; --stage-vh:{CONFIG.stage.size};"
-  >
-    <!-- Inner box outline driven by CONFIG.inner -->
+  <!-- Full screen stage -->
+  <div class="stage">
+    <!-- Inner box outline -->
     <svg class="constellation" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <rect
-        x={CONFIG.inner.x}
-        y={CONFIG.inner.y}
-        width={CONFIG.inner.width}
-        height={CONFIG.inner.height}
-        class="inner-box" rx="16" ry="16"
-      />
+      {#key CONFIG.inner.width}
+        {#await Promise.resolve(getInner()) then inner}
+          <rect
+            x={inner.x}
+            y={inner.y}
+            width={inner.width}
+            height={inner.height}
+            class="inner-box" rx="16" ry="16"
+          />
+        {/await}
+      {/key}
     </svg>
 
-    <!-- Center card uses the same CONFIG.inner -->
-    <div
-      class="center-box"
-      style="
-        left:{CONFIG.inner.x}%;
-        top:{CONFIG.inner.y}%;
-        width:{CONFIG.inner.width}%;
-        height:{CONFIG.inner.height}%;
-      "
-    >
-      <div class="center-content">
-        <h1 class="name">{name}</h1>
-        <p class="tag">{tagline}</p>
-        <nav class="links" aria-label="social links">
-          {#each links as l}
-            <a class="pill" href={l.href} target="_blank" rel="noopener noreferrer" aria-label={l.label}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d={iconPath(l.icon)} /></svg>
-              <span>{l.label}</span>
-            </a>
-          {/each}
-        </nav>
-      </div>
-    </div>
+    <!-- Center card -->
+    {#key CONFIG.inner.width}
+      {#await Promise.resolve(getInner()) then inner}
+        <div
+          class="center-box"
+          style="
+            left:{inner.x}%;
+            top:{inner.y}%;
+            width:{inner.width}%;
+            height:{inner.height}%;
+          "
+        >
+          <div class="center-content">
+            <h1 class="name">{name}</h1>
+            <p class="tag">{tagline}</p>
+            <nav class="links" aria-label="social links">
+              {#each links as l}
+                <a class="pill" href={l.href} target="_blank" rel="noopener noreferrer" aria-label={l.label}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d={iconPath(l.icon)} /></svg>
+                  <span>{l.label}</span>
+                </a>
+              {/each}
+            </nav>
+          </div>
+        </div>
+      {/await}
+    {/key}
 
     <div class="field">
       {#each photoStates as state, i}
@@ -351,7 +445,6 @@
 </div>
 
 <style>
-  /* ——— Palette: dark red & gray ——— */
   :root{
     --bg-0:#1b1c20; --bg-1:#22242a; --bg-2:#2a2d34;
     --ink:#e8e8ee; --muted:#a9acb8;
@@ -360,13 +453,19 @@
   }
 
   :global(html), :global(body) {
-    margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%;
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden;
   }
 
   .page{
-    display:flex; justify-content:center; align-items:center;
-    width:100vw; height:100vh; min-height:100vh; background:var(--bg-0);
-    overflow:hidden; position:relative; color:var(--ink);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw; height: 100vh;
+    min-height: 100vh;
+    background: var(--bg-0);
+    color: var(--ink);
     font-family: Inter, SF Pro Text, Segoe UI, Roboto, system-ui, -apple-system, Arial, sans-serif;
     padding: env(safe-area-inset-top) env(safe-area-inset-right)
              env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -389,26 +488,21 @@
   }
   @keyframes grain{ to { transform: translate3d(-8%, -8%, 0); } }
 
-  /* Arena size is controlled by CSS vars set from CONFIG.stage.size */
-  /* Full-screen arena */
+  /* Full screen stage */
   .stage{
-    position: absolute;      /* or fixed; absolute is fine inside .page */
-    inset: 0;                /* top:0; right:0; bottom:0; left:0 */
+    position: absolute;
+    inset: 0; /* top:0; right:0; bottom:0; left:0 */
     width: 100vw;
     height: 100vh;
     z-index: 1;
     margin: 0;
+    overflow: hidden;
   }
-
-  /* (Optional) remove/disable any media-query overrides that change .stage size) */
-
-  
 
   .constellation{ position:absolute; inset:0; z-index:2; pointer-events:none; }
   .inner-box { fill:none; stroke:var(--box-glow); stroke-width:1.2; vector-effect:non-scaling-stroke;
                filter: drop-shadow(0 0 12px var(--box-glow)); }
 
-  /* Center box geometry now driven by inline style from CONFIG.inner */
   .center-box{
     position:absolute;
     z-index:3; display:flex; justify-content:center; align-items:center;
@@ -418,19 +512,19 @@
                 inset 0 1px 0 rgba(255,255,255,0.08),
                 inset 0 0 20px rgba(194,31,31,0.05);
   }
-  .center-content{ display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:2.5vmin; width:100%; }
-  .name{ font-size: clamp(2rem, 7vmin, 6rem); line-height:.95; margin:0 0 .5rem 0; letter-spacing:.04em;
+  .center-content{ display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:clamp(1rem, 3vmin, 2rem); width:100%; }
+  .name{ font-size: clamp(1.5rem, 6vmin, 4rem); line-height:.95; margin:0 0 .5rem 0; letter-spacing:.04em;
          background: linear-gradient(180deg, #f3f3f6, #c7c9d3 65%, #9ea3b1);
          -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .tag{ margin:0 0 1.2rem 0; color:var(--muted); font-size: clamp(.85rem, 2vmin, 1.1rem); }
+  .tag{ margin:0 0 1.2rem 0; color:var(--muted); font-size: clamp(.75rem, 1.8vmin, 1rem); }
   .links{ display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; }
   .pill{
-    display:inline-flex; align-items:center; gap:.5rem; padding:.6rem 1rem; border-radius:999px;
+    display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:999px;
     color:#fff; text-decoration:none; font-weight:600; letter-spacing:.02em;
     background: linear-gradient(180deg, var(--deep-red), var(--dark-crimson));
     box-shadow: 0 6px 18px rgba(194,31,31,.25), inset 0 0 0 1px rgba(194,31,31,.35);
     transition: transform 160ms ease, box-shadow 160ms ease;
-    font-size: clamp(.8rem, 1.8vmin, 1rem);
+    font-size: clamp(.7rem, 1.6vmin, .9rem);
   }
   .pill:hover{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(194,31,31,.35), inset 0 0 0 1px rgba(194,31,31,.5); }
   .pill svg{ width:16px; height:16px; fill: currentColor; }
@@ -441,6 +535,7 @@
   .thumb{
     position:absolute;
     transform: translate(-50%, -50%) scale(var(--scale, 1));
+    transform-origin: center center;
     will-change: transform;
     contain: layout paint;
     border-radius: 12px; overflow:hidden; pointer-events:auto;
@@ -448,10 +543,9 @@
     transition: transform 180ms ease, box-shadow 180ms ease;
     background:#2f323a; cursor:pointer; z-index:5;
   }
-  .thumb:hover{ 
-    --scale: 2; /* slightly reduced since photos are larger now */
-    box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6); 
-    z-index:25; 
+  .thumb:hover{
+    box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6);
+    z-index:25;
   }
 
   .thumb img{ width:100%; height:100%; object-fit:cover; display:block; filter: saturate(.95) contrast(1.05); }
@@ -466,11 +560,39 @@
   .caption{
     position:absolute; left:50%; bottom:-0.1rem; transform: translate(-50%, 100%);
     background: rgba(34,36,42,0.95); backdrop-filter: blur(8px);
-    color: var(--ink); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem;
+    color: var(--ink); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: clamp(.6rem, 1.4vmin, .8rem);
     white-space: nowrap; z-index: 30; border: 1px solid var(--box-glow);
     box-shadow: 0 4px 16px rgba(0,0,0,.4); pointer-events: none; animation: fadeIn 150ms ease-out;
   }
   @keyframes fadeIn { from { opacity:0; transform: translate(-50%, calc(100% + 8px)); } to { opacity:1; transform: translate(-50%, 100%); } }
 
-  /* The stage already scales to the screen; no extra overrides needed below */
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .center-box {
+      border-radius: 12px;
+    }
+    .links{
+      gap: .5rem;
+    }
+    .pill{
+      padding: .4rem .8rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .name{
+      font-size: clamp(1.2rem, 5vmin, 3rem);
+    }
+    .tag{
+      margin-bottom: 1rem;
+    }
+    .links{
+      flex-direction: column;
+      align-items: center;
+    }
+    .caption{
+      font-size: .6rem;
+      padding: .3rem .6rem;
+    }
+  }
 </style>
