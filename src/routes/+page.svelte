@@ -72,6 +72,7 @@
   let lastActivityTime = Date.now();
   let isFormingHI = false;
   let hiFormationProgress = 0;
+  let isBrowser = false;
 
   // Define "HI" letter positions (scaled to 0-100 coordinate system)
   const hiPositions = [
@@ -332,6 +333,12 @@
     }
   }
 
+  function handleKeyInteraction(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      handleInteraction();
+    }
+  }
+
   let rafId = 0;
   let lastT = 0;
   function tick(ts: number) {
@@ -358,23 +365,36 @@
   };
 
   import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
+  
   onMount(() => { 
-    initializePhotos(); 
-    rafId = requestAnimationFrame(tick);
-    // Track any user interaction
-    document.addEventListener('mousemove', handleInteraction);
-    document.addEventListener('click', handleInteraction);
-    document.addEventListener('keydown', handleInteraction);
+    isBrowser = browser;
+    if (browser) {
+      initializePhotos(); 
+      rafId = requestAnimationFrame(tick);
+      // Track any user interaction
+      document.addEventListener('mousemove', handleInteraction);
+      document.addEventListener('click', handleInteraction);
+      document.addEventListener('keydown', handleInteraction);
+    }
   });
+  
   onDestroy(() => { 
-    if (rafId) cancelAnimationFrame(rafId);
-    document.removeEventListener('mousemove', handleInteraction);
-    document.removeEventListener('click', handleInteraction);
-    document.removeEventListener('keydown', handleInteraction);
+    if (isBrowser && rafId) {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener('mousemove', handleInteraction);
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    }
   });
 </script>
 
-<div class="page" on:mousemove={handleInteraction} on:click={handleInteraction}>
+<div class="page" 
+     role="application" 
+     on:mousemove={handleInteraction} 
+     on:click={handleInteraction}
+     on:keydown={handleKeyInteraction}
+     tabindex="0">
   <div class="bg"></div>
 
   <!-- Full screen stage -->
@@ -422,25 +442,35 @@
       {/await}
     {/key}
 
-    <div class="field">
-      {#each photoStates as state, i}
-        <div class="photo-container">
-          <figure
-            bind:this={nodes[i]}
-            class="thumb"
-            style="left:{state.x}%; top:{state.y}%; width:{state.size}%; height:{state.size}%;"
-            on:mouseenter={() => handleMouseEnter(i)}
-            on:mouseleave={() => handleMouseLeave(i)}
-          >
-            <img src={images[i]} alt={`gallery image ${i + 1}`} loading="lazy" decoding="async" />
-            <div class="gloss"></div>
-            {#if state.showCaption}
-              <figcaption class="caption">{captions[i]}</figcaption>
-            {/if}
-          </figure>
-        </div>
-      {/each}
-    </div>
+    {#if isBrowser}
+      <div class="field">
+        {#each photoStates as state, i}
+          <div class="photo-container">
+            <figure
+              bind:this={nodes[i]}
+              class="thumb"
+              style="left:{state.x}%; top:{state.y}%; width:{state.size}%; height:{state.size}%;"
+              on:mouseenter={() => handleMouseEnter(i)}
+              on:mouseleave={() => handleMouseLeave(i)}
+              on:keydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleMouseEnter(i);
+                }
+              }}
+              tabindex="0"
+              role="button"
+              aria-label={`View ${captions[i]}`}
+            >
+              <img src={images[i]} alt={`${captions[i]} - gallery image ${i + 1}`} loading="lazy" decoding="async" />
+              <div class="gloss"></div>
+              {#if state.showCaption}
+                <figcaption class="caption">{captions[i]}</figcaption>
+              {/if}
+            </figure>
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -470,6 +500,7 @@
     padding: env(safe-area-inset-top) env(safe-area-inset-right)
              env(safe-area-inset-bottom) env(safe-area-inset-left);
     box-sizing: border-box;
+    outline: none;
   }
   @supports (height: 100dvh){ .page{ height:100dvh; min-height:100dvh; } }
   @supports (height: 100svh){ .page{ height:100svh; min-height:100svh; } }
@@ -527,6 +558,10 @@
     font-size: clamp(.7rem, 1.6vmin, .9rem);
   }
   .pill:hover{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(194,31,31,.35), inset 0 0 0 1px rgba(194,31,31,.5); }
+  .pill:focus-visible {
+    outline: 2px solid var(--glow-red);
+    outline-offset: 2px;
+  }
   .pill svg{ width:16px; height:16px; fill: currentColor; }
 
   .field{ position:absolute; inset:0; z-index:2; pointer-events:none; }
@@ -542,10 +577,16 @@
     box-shadow: 0 8px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.06);
     transition: transform 180ms ease, box-shadow 180ms ease;
     background:#2f323a; cursor:pointer; z-index:5;
+    outline: none;
   }
-  .thumb:hover{
+  .thumb:hover,
+  .thumb:focus {
     box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6);
     z-index:25;
+  }
+  .thumb:focus-visible {
+    outline: 2px solid var(--glow-red);
+    outline-offset: 2px;
   }
 
   .thumb img{ width:100%; height:100%; object-fit:cover; display:block; filter: saturate(.95) contrast(1.05); }
