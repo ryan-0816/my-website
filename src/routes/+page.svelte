@@ -1,5 +1,33 @@
 <script lang="ts">
-  // ===== EDIT ME =====
+  // ===== ONE PLACE TO EDIT =====
+  const CONFIG = {
+    stage: {
+      /** Visible bounce arena size: used for .stage width/height via CSS vars */
+      size: 100 // percent of vmin/vh (100 => min(100vmin, 100vh))
+    },
+    inner: {
+      /** Inner box (glass card AND physics obstacle), in % of stage */
+      x: 35,     // left
+      y: 30,     // top
+      width: 40, // width
+      height: 30 // height
+    },
+    spawn: {
+      padding: 3,         // extra % clearance around inner box when spawning
+      minSize: 10,        // photo size % (roughly 2x larger)
+      maxSize: 16,
+      minDistance: 24     // increase separation to match bigger photos
+    },
+    motion: {
+      minSpeed: 2,  // % per second
+      maxSpeed: 6,
+      damping: 0.9995,
+      dtClamp: 1 / 30 // cap dt to ~33ms steps to avoid teleports
+    }
+  };
+  // =============================
+
+  // ===== EDIT ME (content) =====
   export let name = "RYAN TAGEN";
   const tagline = "Cybersecurity BS/MS at Rochester Institute of Technology";
 
@@ -12,7 +40,6 @@
     "/photos/photo21.jpg","/photos/photo22.jpg","/photos/photo23.jpg","/photos/photo24.jpg"
   ];
 
-  // Add captions for each image
   const captions: string[] = [
     "Cybersecurity project","Campus life at RIT","Technical workshop","Team collaboration",
     "Security conference","Programming session","Network security lab","Research presentation",
@@ -28,7 +55,7 @@
     { href: "mailto:rst4035@rit.edu", label: "Email", icon: "mail" },
     { href: "/Ryan Tagen Resume.pdf", label: "Resume", icon: "file" }
   ];
-  // ====================
+  // =============================
 
   type PhotoState = {
     x: number;   // % of stage width
@@ -43,66 +70,63 @@
   let photoStates: PhotoState[] = [];
   let nodes: HTMLElement[] = []; // refs to figure elements for cheap style updates
 
-  // Bigger middle box
-  let innerBox = { x: 20, y: 20, width: 60, height: 60 };
-
   // Helpers
   const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
   function isOutsideInnerBox(x: number, y: number, radius: number): boolean {
+    const pad = CONFIG.spawn.padding;
+    const left = CONFIG.inner.x - pad;
+    const right = CONFIG.inner.x + CONFIG.inner.width + pad;
+    const top = CONFIG.inner.y - pad;
+    const bottom = CONFIG.inner.y + CONFIG.inner.height + pad;
     return !(
-      x + radius > innerBox.x &&
-      x - radius < innerBox.x + innerBox.width &&
-      y + radius > innerBox.y &&
-      y - radius < innerBox.y + innerBox.height
+      x + radius > left &&
+      x - radius < right &&
+      y + radius > top &&
+      y - radius < bottom
     );
   }
 
   function initializePhotos() {
-  const minSize = 8;
-  const maxSize = 12;
-  const minDistance = 12; // minimum center-to-center distance in % units
+    const { minSize, maxSize, minDistance } = CONFIG.spawn;
+    // For debugging one photo, uncomment:
+    // const list = images.slice(0, 1);
+    const list = images;
 
-  // For debugging one photo, uncomment:
-  // const list = images.slice(0, 1);
-  const list = images;
+    const tempStates: PhotoState[] = [];
 
-  const tempStates: PhotoState[] = [];
+    for (let i = 0; i < list.length; i++) {
+      const size = rand(minSize, maxSize);
+      const r = size / 2;
+      let x = 50, y = 50;
+      let tries = 0;
 
-  for (let i = 0; i < list.length; i++) {
-    const size = rand(minSize, maxSize);
-    const r = size / 2;
-    let x = 50, y = 50;
-    let tries = 0;
+      // pick random positions until they're spaced out & outside inner box
+      do {
+        x = rand(r + 1, 100 - (r + 1));
+        y = rand(r + 1, 100 - (r + 1));
+        tries++;
+        if (tries > 800) break; // fail-safe
+      } while (
+        !isOutsideInnerBox(x, y, r) ||
+        tempStates.some(p => {
+          const dx = p.x - x;
+          const dy = p.y - y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          return dist < (p.size / 2 + r + minDistance * 0.5);
+        })
+      );
 
-    // pick random positions until they're spaced out & outside inner box
-    do {
-      x = rand(r + 1, 100 - (r + 1));
-      y = rand(r + 1, 100 - (r + 1));
-      tries++;
-      if (tries > 500) break; // fail-safe
-    } while (
-      !isOutsideInnerBox(x, y, r) ||
-      tempStates.some(p => {
-        const dx = p.x - x;
-        const dy = p.y - y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        return dist < (p.size / 2 + r + minDistance * 0.5);
-      })
-    );
+      const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
+      const angle = rand(0, Math.PI * 2);
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
 
-    // slow random velocity
-    const speed = rand(2, 6);
-    const angle = rand(0, Math.PI * 2);
-    const vx = Math.cos(angle) * speed;
-    const vy = Math.sin(angle) * speed;
-
-    tempStates.push({ x, y, size, vx, vy, index: i, showCaption: false });
+      tempStates.push({ x, y, size, vx, vy, index: i, showCaption: false });
     }
 
     photoStates = tempStates;
   }
-
 
   function clamp(val: number, lo: number, hi: number) {
     return Math.max(lo, Math.min(hi, val));
@@ -110,10 +134,10 @@
 
   function bounceOffInnerBox(p: PhotoState) {
     const r = p.size / 2;
-    const left = innerBox.x;
-    const right = innerBox.x + innerBox.width;
-    const top = innerBox.y;
-    const bottom = innerBox.y + innerBox.height;
+    const left = CONFIG.inner.x;
+    const right = CONFIG.inner.x + CONFIG.inner.width;
+       const top = CONFIG.inner.y;
+    const bottom = CONFIG.inner.y + CONFIG.inner.height;
 
     const insideX = p.x + r > left && p.x - r < right;
     const insideY = p.y + r > top && p.y - r < bottom;
@@ -169,7 +193,7 @@
 
       const r = p.size / 2;
 
-      // Outer bounds
+      // Outer bounds (0..100 is the world in % of stage)
       if (p.x - r < 0)        { p.x = r;        p.vx =  Math.abs(p.vx); }
       else if (p.x + r > 100) { p.x = 100 - r;  p.vx = -Math.abs(p.vx); }
       if (p.y - r < 0)        { p.y = r;        p.vy =  Math.abs(p.vy); }
@@ -181,10 +205,10 @@
 
     resolveCollisions(photoStates);
 
-    // Mild damping
+    // Damping + clamp
     for (const p of photoStates) {
-      p.vx *= 0.9995;
-      p.vy *= 0.9995;
+      p.vx *= CONFIG.motion.damping;
+      p.vy *= CONFIG.motion.damping;
       const r = p.size / 2;
       p.x = clamp(p.x, r, 100 - r);
       p.y = clamp(p.y, r, 100 - r);
@@ -211,24 +235,15 @@
   let lastT = 0;
   function tick(ts: number) {
     if (!lastT) lastT = ts;
-    const dt = Math.min((ts - lastT) / 1000, 1 / 30); // clamp to ~33ms
+    const dt = Math.min((ts - lastT) / 1000, CONFIG.motion.dtClamp);
     lastT = ts;
 
     stepPhysics(dt);
     rafId = requestAnimationFrame(tick);
   }
-  // Reset time on backgrounding so we don't catch up with a mega step
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => { if (document.hidden) lastT = 0; });
   }
-
-  // Pointer (kept minimal)
-  let mx = 0, my = 0;
-  const onPointerMove = (e: PointerEvent) => {
-    const w = window.innerWidth || 1, h = window.innerHeight || 1;
-    mx = (e.clientX / w) - 0.5;
-    my = (e.clientY / h) - 0.5;
-  };
 
   const iconPath = (name: string) => {
     switch (name) {
@@ -249,20 +264,35 @@
   onDestroy(() => { if (rafId) cancelAnimationFrame(rafId); });
 </script>
 
-<div class="page" on:pointermove={onPointerMove}>
+<div class="page">
   <div class="bg"></div>
 
-  <div class="stage">
-    <!-- Inner box outline -->
+  <!-- Set the arena size via CSS vars from CONFIG.stage.size -->
+  <div
+    class="stage"
+    style="--stage-vmin:{CONFIG.stage.size}; --stage-vh:{CONFIG.stage.size};"
+  >
+    <!-- Inner box outline driven by CONFIG.inner -->
     <svg class="constellation" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <rect
-        x={innerBox.x} y={innerBox.y}
-        width={innerBox.width} height={innerBox.height}
+        x={CONFIG.inner.x}
+        y={CONFIG.inner.y}
+        width={CONFIG.inner.width}
+        height={CONFIG.inner.height}
         class="inner-box" rx="16" ry="16"
       />
     </svg>
 
-    <div class="center-box">
+    <!-- Center card uses the same CONFIG.inner -->
+    <div
+      class="center-box"
+      style="
+        left:{CONFIG.inner.x}%;
+        top:{CONFIG.inner.y}%;
+        width:{CONFIG.inner.width}%;
+        height:{CONFIG.inner.height}%;
+      "
+    >
       <div class="center-content">
         <h1 class="name">{name}</h1>
         <p class="tag">{tagline}</p>
@@ -283,7 +313,7 @@
           <figure
             bind:this={nodes[i]}
             class="thumb"
-            style="left: {state.x}%; top: {state.y}%; width: {state.size}%; height: {state.size}%;"
+            style="left:{state.x}%; top:{state.y}%; width:{state.size}%; height:{state.size}%;"
             on:mouseenter={() => handleMouseEnter(i)}
             on:mouseleave={() => handleMouseLeave(i)}
           >
@@ -338,21 +368,28 @@
   }
   @keyframes grain{ to { transform: translate3d(-8%, -8%, 0); } }
 
+  /* Arena size is controlled by CSS vars set from CONFIG.stage.size */
+  /* Full-screen arena */
   .stage{
-    position: relative;
-    width: min(90vmin, 90vh);
-    height: min(90vmin, 90vh);
-    aspect-ratio: 1/1;
-    z-index: 1; margin: 0 auto;
+    position: absolute;      /* or fixed; absolute is fine inside .page */
+    inset: 0;                /* top:0; right:0; bottom:0; left:0 */
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    margin: 0;
   }
+
+  /* (Optional) remove/disable any media-query overrides that change .stage size) */
+
+  
 
   .constellation{ position:absolute; inset:0; z-index:2; pointer-events:none; }
   .inner-box { fill:none; stroke:var(--box-glow); stroke-width:1.2; vector-effect:non-scaling-stroke;
                filter: drop-shadow(0 0 12px var(--box-glow)); }
 
-  /* Bigger center box */
+  /* Center box geometry now driven by inline style from CONFIG.inner */
   .center-box{
-    position:absolute; top:20%; left:20%; width:60%; height:60%;
+    position:absolute;
     z-index:3; display:flex; justify-content:center; align-items:center;
     background: rgba(34,36,42,0.85); backdrop-filter: blur(12px);
     border: 1.5px solid var(--box-glow); border-radius: 16px;
@@ -380,7 +417,6 @@
   .field{ position:absolute; inset:0; z-index:2; pointer-events:none; }
   .photo-container{ position:absolute; inset:0; pointer-events:auto; }
 
-  /* GPU-friendly transform + CSS vars (no left/top anims) */
   .thumb{
     position:absolute;
     transform: translate(-50%, -50%) scale(var(--scale, 1));
@@ -392,7 +428,7 @@
     background:#2f323a; cursor:pointer; z-index:5;
   }
   .thumb:hover{ 
-    --scale: 1.6; 
+    --scale: 1.4; /* slightly reduced since photos are larger now */
     box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6); 
     z-index:25; 
   }
@@ -406,7 +442,6 @@
     mix-blend-mode: screen;
   }
 
-  /* Caption attached under the photo */
   .caption{
     position:absolute; left:50%; bottom:-0.1rem; transform: translate(-50%, 100%);
     background: rgba(34,36,42,0.95); backdrop-filter: blur(8px);
@@ -416,19 +451,5 @@
   }
   @keyframes fadeIn { from { opacity:0; transform: translate(-50%, calc(100% + 8px)); } to { opacity:1; transform: translate(-50%, 100%); } }
 
-  @media (max-width: 720px){
-    .stage{ width:min(85vmin, 85vh); height:min(85vmin, 85vh); }
-    .center-box{ top:18%; left:18%; width:64%; height:64%; }
-    .name{ font-size: clamp(1.8rem, 6vmin, 5rem); }
-    .links{ gap: .5rem; }
-    .pill{ padding:.5rem .8rem; font-size:.85rem; }
-  }
-  @media (max-width: 480px){
-    .stage{ width:min(80vmin, 80vh); height:min(80vmin, 80vh); }
-    .center-box{ top:16%; left:16%; width:68%; height:68%; }
-    .name{ font-size: clamp(1.6rem, 5vmin, 4rem); }
-    .links{ flex-direction: column; align-items: center; }
-    .tag{ margin-bottom: 1rem; }
-    .caption{ font-size:.72rem; padding:.35rem .7rem; }
-  }
+  /* The stage already scales to the screen; no extra overrides needed below */
 </style>
