@@ -18,8 +18,8 @@
     },
     spawn: {
       padding: 3,         // extra % clearance around inner box when spawning
-      minSize: 10,        // photo size % (roughly 2x larger)
-      maxSize: 16,
+      minSize: 8,        // photo size % (roughly 2x larger)
+      maxSize: 14,
       minDistance: 24     // increase separation to match bigger photos
     },
     motion: {
@@ -27,10 +27,6 @@
       maxSpeed: 6,
       damping: 0.9995,
       dtClamp: 1 / 30 // cap dt to ~33ms steps to avoid teleports
-    },
-    solver: {
-      iterations: 3,    // run the collision solver a few times per frame
-      epsilon: 0.05     // extra separation in % units so edges don't re-overlap
     }
   };
   // =============================
@@ -45,7 +41,8 @@
     "/photos/photo9.jpg","/photos/photo10.jpg","/photos/photo11.jpg","/photos/photo12.jpg",
     "/photos/photo13.jpg","/photos/photo14.jpg","/photos/photo15.jpg","/photos/photo16.jpg",
     "/photos/photo17.jpg","/photos/photo18.jpg","/photos/photo19.jpg","/photos/photo20.jpg",
-    "/photos/photo21.jpg","/photos/photo22.jpg","/photos/photo23.jpg","/photos/photo24.jpg"
+    "/photos/photo21.jpg","/photos/photo22.jpg","/photos/photo23.jpg","/photos/photo24.jpg",
+    "/photos/photo25.jpg","/photos/photo26.jpg","/photos/photo27.jpg"
   ];
 
   const captions: string[] = [
@@ -73,32 +70,13 @@
     vy: number;  // % per second
     index: number;
     showCaption: boolean;
-    aspectRatio: number; // ADDED: Store original aspect ratio
   };
 
   let photoStates: PhotoState[] = [];
   let nodes: HTMLElement[] = []; // refs to figure elements for cheap style updates
 
-  // NEW: Store original image dimensions
-  let imageDimensions: {width: number, height: number}[] = [];
-
   // Helpers
   const rand = (min: number, max: number) => min + Math.random() * (max - min);
-
-  // NEW: Function to load image dimensions
-  async function loadImageDimensions(src: string): Promise<{width: number, height: number}> {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      };
-      img.onerror = () => {
-        // Fallback to square aspect ratio if image fails to load
-        resolve({ width: 1, height: 1 });
-      };
-      img.src = src;
-    });
-  }
 
   function isOutsideInnerBox(x: number, y: number, radius: number): boolean {
     const pad = CONFIG.spawn.padding;
@@ -114,21 +92,18 @@
     );
   }
 
-  async function initializePhotos() {
+  function initializePhotos() {
     const { minSize, maxSize, minDistance } = CONFIG.spawn;
-    
-    // Load all image dimensions first
-    imageDimensions = await Promise.all(
-      images.map(src => loadImageDimensions(src))
-    );
-
+    // For debugging one photo, uncomment:
+    // const list = images.slice(0, 1);
     const list = images;
+
     const tempStates: PhotoState[] = [];
 
     for (let i = 0; i < list.length; i++) {
       const size = rand(minSize, maxSize);
       const r = size / 2;
-      let x, y;
+      let x = 50, y = 50;
       let tries = 0;
 
       // pick random positions until they're spaced out & outside inner box
@@ -152,14 +127,7 @@
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
 
-      // Calculate aspect ratio from original image dimensions
-      const dimensions = imageDimensions[i];
-      const aspectRatio = dimensions.width / dimensions.height;
-
-      tempStates.push({ 
-        x, y, size, vx, vy, index: i, showCaption: false,
-        aspectRatio // NEW: Store aspect ratio
-      });
+      tempStates.push({ x, y, size, vx, vy, index: i, showCaption: false });
     }
 
     photoStates = tempStates;
@@ -173,7 +141,7 @@
     const r = p.size / 2;
     const left = CONFIG.inner.x;
     const right = CONFIG.inner.x + CONFIG.inner.width;
-    const top = CONFIG.inner.y;
+       const top = CONFIG.inner.y;
     const bottom = CONFIG.inner.y + CONFIG.inner.height;
 
     const insideX = p.x + r > left && p.x - r < right;
@@ -194,63 +162,43 @@
   }
 
   function resolveCollisions(states: PhotoState[]) {
-    const eps = CONFIG.solver.epsilon;
-
     for (let i = 0; i < states.length; i++) {
       for (let j = i + 1; j < states.length; j++) {
         const a = states[i], b = states[j];
         const ra = a.size / 2, rb = b.size / 2;
-
-        let dx = b.x - a.x, dy = b.y - a.y;
-        let dist2 = dx*dx + dy*dy;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist2 = dx*dx + dy*dy;
         const minDist = ra + rb;
 
-        if (dist2 === 0) {
-          // Perfect overlap (rare but can happen) — nudge randomly
-          dx = 0.001; dy = 0;
-          dist2 = dx*dx + dy*dy;
-        }
+        if (dist2 > 0 && dist2 < minDist*minDist) {
+          const dist = Math.sqrt(dist2) || 1;
+          const nx = dx / dist, ny = dy / dist;
 
-        if (dist2 < (minDist*minDist)) {
-          const dist = Math.sqrt(dist2);
-          const nx = dx / dist;
-          const ny = dy / dist;
+          const overlap = (minDist - dist) / 2;
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
 
-          // --- 1) Positional correction: move so they're just touching (+epsilon)
-          const push = (minDist - dist + eps) * 0.5;
-          a.x -= nx * push; a.y -= ny * push;
-          b.x += nx * push; b.y += ny * push;
+          const vaDotN = a.vx * nx + a.vy * ny;
+          const vbDotN = b.vx * nx + b.vy * ny;
 
-          // --- 2) Velocity response: equal-mass elastic along the normal
-          // Decompose velocities into normal components and swap them
-          const vaN = a.vx * nx + a.vy * ny;
-          const vbN = b.vx * nx + b.vy * ny;
+          const vaNx = vaDotN * nx, vaNy = vaDotN * ny;
+          const vbNx = vbDotN * nx, vbNy = vbDotN * ny;
 
-          // Only if they're moving toward each other along the normal
-          if (vbN - vaN < 0) {
-            const vaN_new = vbN;
-            const vbN_new = vaN;
-
-            a.vx += (vaN_new - vaN) * nx;
-            a.vy += (vaN_new - vaN) * ny;
-
-            b.vx += (vbN_new - vbN) * nx;
-            b.vy += (vbN_new - vbN) * ny;
-          }
+          a.vx += (vbNx - vaNx); a.vy += (vbNy - vaNy);
+          b.vx += (vaNx - vbNx); b.vy += (vaNy - vbNy);
         }
       }
     }
   }
 
   function stepPhysics(dt: number) {
-    // 1) Integrate motion
     for (const p of photoStates) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
       const r = p.size / 2;
 
-      // Outer bounds (0..100 world)
+      // Outer bounds (0..100 is the world in % of stage)
       if (p.x - r < 0)        { p.x = r;        p.vx =  Math.abs(p.vx); }
       else if (p.x + r > 100) { p.x = 100 - r;  p.vx = -Math.abs(p.vx); }
       if (p.y - r < 0)        { p.y = r;        p.vy =  Math.abs(p.vy); }
@@ -260,12 +208,9 @@
       bounceOffInnerBox(p);
     }
 
-    // 2) Solve collisions a few times for crisp separation
-    for (let k = 0; k < CONFIG.solver.iterations; k++) {
-      resolveCollisions(photoStates);
-    }
+    resolveCollisions(photoStates);
 
-    // 3) Damping + final clamp
+    // Damping + clamp
     for (const p of photoStates) {
       p.vx *= CONFIG.motion.damping;
       p.vy *= CONFIG.motion.damping;
@@ -274,7 +219,7 @@
       p.y = clamp(p.y, r, 100 - r);
     }
 
-    // 4) Push styles
+    // Update DOM directly via inline styles (no re-render)
     for (let i = 0; i < photoStates.length; i++) {
       const p = photoStates[i];
       const el = nodes[i];
@@ -282,12 +227,11 @@
       el.style.left = p.x + '%';
       el.style.top = p.y + '%';
       el.style.width = p.size + '%';
-      // NEW: Calculate height based on aspect ratio
-      const height = p.size / p.aspectRatio;
-      el.style.height = height + '%';
+      el.style.height = p.size + '%';
     }
   }
 
+  // Hover behavior: toggle caption only (cheap)
   // Hover behavior: scale up and show caption
   function handleMouseEnter(i: number) { 
     photoStates[i].showCaption = true;
@@ -307,7 +251,7 @@
     }
   }
 
-  // RAF loop with dt clamp (avoids "teleport" after tab idle)
+  // RAF loop with dt clamp (avoids “teleport” after tab idle)
   let rafId = 0;
   let lastT = 0;
   function tick(ts: number) {
@@ -337,11 +281,7 @@
   };
 
   import { onMount, onDestroy } from 'svelte';
-  onMount(() => { 
-    initializePhotos().then(() => {
-      rafId = requestAnimationFrame(tick);
-    });
-  });
+  onMount(() => { initializePhotos(); rafId = requestAnimationFrame(tick); });
   onDestroy(() => { if (rafId) cancelAnimationFrame(rafId); });
 </script>
 
@@ -394,19 +334,16 @@
           <figure
             bind:this={nodes[i]}
             class="thumb"
-            style="left:{state.x}%; top:{state.y}%; width:{state.size}%;"
+            style="left:{state.x}%; top:{state.y}%; width:{state.size}%; height:{state.size}%;"
             on:mouseenter={() => handleMouseEnter(i)}
             on:mouseleave={() => handleMouseLeave(i)}
           >
             <img src={images[i]} alt={`gallery image ${i + 1}`} loading="lazy" decoding="async" />
             <div class="gloss"></div>
+            {#if state.showCaption}
+              <figcaption class="caption">{captions[i]}</figcaption>
+            {/if}
           </figure>
-          <!-- Caption positioned below the image -->
-          {#if state.showCaption}
-            <div class="caption" style="left:{state.x}%; top:{state.y + (state.size / state.aspectRatio / 2) + 2}%;">
-              {captions[i]}
-            </div>
-          {/if}
         </div>
       {/each}
     </div>
@@ -463,6 +400,10 @@
     margin: 0;
   }
 
+  /* (Optional) remove/disable any media-query overrides that change .stage size) */
+
+  
+
   .constellation{ position:absolute; inset:0; z-index:2; pointer-events:none; }
   .inner-box { fill:none; stroke:var(--box-glow); stroke-width:1.2; vector-effect:non-scaling-stroke;
                filter: drop-shadow(0 0 12px var(--box-glow)); }
@@ -504,13 +445,12 @@
     contain: layout paint;
     border-radius: 12px; overflow:hidden; pointer-events:auto;
     box-shadow: 0 8px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.06);
-    transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94), 
-                box-shadow 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: transform 180ms ease, box-shadow 180ms ease;
     background:#2f323a; cursor:pointer; z-index:5;
   }
-
   .thumb:hover{ 
-    box-shadow: 0 20px 50px rgba(0,0,0,.7), 0 0 0 2px rgba(194,31,31,.8); 
+    --scale: 2; /* slightly reduced since photos are larger now */
+    box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6); 
     z-index:25; 
   }
 
@@ -524,34 +464,13 @@
   }
 
   .caption{
-    position:absolute;
-    transform: translateX(-50%);
-    background: rgba(34,36,42,0.95); 
-    backdrop-filter: blur(12px);
-    color: var(--ink); 
-    padding: 0.5rem 1rem; 
-    border-radius: 8px; 
-    font-size: 0.8rem;
-    white-space: nowrap; 
-    z-index: 30; 
-    border: 1px solid var(--box-glow);
-    box-shadow: 0 8px 24px rgba(0,0,0,.5); 
-    pointer-events: none; 
-    animation: fadeIn 200ms ease-out;
-    font-weight: 500;
-    text-align: center;
+    position:absolute; left:50%; bottom:-0.1rem; transform: translate(-50%, 100%);
+    background: rgba(34,36,42,0.95); backdrop-filter: blur(8px);
+    color: var(--ink); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem;
+    white-space: nowrap; z-index: 30; border: 1px solid var(--box-glow);
+    box-shadow: 0 4px 16px rgba(0,0,0,.4); pointer-events: none; animation: fadeIn 150ms ease-out;
   }
-
-  @keyframes fadeIn { 
-    from { 
-      opacity:0; 
-      transform: translateX(-50%) translateY(-8px); 
-    } 
-    to { 
-      opacity:1; 
-      transform: translateX(-50%) translateY(0); 
-    } 
-  }
+  @keyframes fadeIn { from { opacity:0; transform: translate(-50%, calc(100% + 8px)); } to { opacity:1; transform: translate(-50%, 100%); } }
 
   /* The stage already scales to the screen; no extra overrides needed below */
 </style>
