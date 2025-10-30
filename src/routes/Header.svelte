@@ -5,12 +5,26 @@
 </script>
 
 <style>
+	:global(:root) {
+		--bg-0: #1b1c20;
+		--bg-1: #22242a;
+		--bg-2: #2a2d34;
+		--ink: #e8e8ee;
+		--muted: #a9acb8;
+		--deep-red: #7d0e0e;
+		--dark-crimson: #5f0b0b;
+		--glow-red: #c21f1f;
+	}
+
 	header {
 		display: flex;
 		justify-content: space-between;
 		position: sticky;
 		top: 0;
 		z-index: 1000;
+		background: var(--bg-1);
+		border-bottom: 1px solid var(--bg-2);
+		backdrop-filter: blur(10px);
 	}
 
 	.corner {
@@ -24,18 +38,24 @@
 		justify-content: center;
 		width: 100%;
 		height: 100%;
+		transition: transform 0.2s ease;
+	}
+
+	.corner a:hover {
+		transform: scale(1.1);
 	}
 
 	.corner img {
 		width: 2em;
 		height: 2em;
 		object-fit: contain;
+		filter: brightness(0.9);
 	}
 
 	nav {
 		display: flex;
 		justify-content: center;
-		--background: rgba(255, 255, 255, .9);
+		--background: var(--bg-1);
 	}
 
 	svg {
@@ -75,25 +95,79 @@
 		top: 0;
 		left: calc(50% - var(--size));
 		border: var(--size) solid transparent;
-		border-top: var(--size) solid var(--color-theme-1);
+		border-top: var(--size) solid var(--glow-red);
 	}
 
 	nav a {
 		display: flex;
 		height: 100%;
 		align-items: center;
-		padding: 0 0.5rem;
-		color: var(--color-text);
-		font-weight: 700;
+		padding: 0 1rem;
+		color: var(--ink);
+		font-weight: 600;
 		font-size: 0.8rem;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 		text-decoration: none;
-		transition: color 0.2s linear;
+		transition: all 0.2s ease;
+		position: relative;
 	}
 
-	a:hover {
-		color: var(--color-theme-1);
+	nav a:hover {
+		color: var(--glow-red);
+		background: rgba(194, 31, 31, 0.1);
+	}
+
+	li[aria-current='page'] a {
+		color: var(--glow-red);
+		background: linear-gradient(180deg, transparent, rgba(194, 31, 31, 0.15));
+	}
+
+	/* Add a subtle glow effect for current page */
+	li[aria-current='page'] a::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 25%;
+		width: 50%;
+		height: 2px;
+		background: var(--glow-red);
+		border-radius: 2px;
+		box-shadow: 0 0 8px var(--glow-red);
+	}
+
+	/* Responsive design */
+	@media (max-width: 768px) {
+		nav a {
+			padding: 0 0.75rem;
+			font-size: 0.75rem;
+		}
+		
+		.corner {
+			width: 2.5em;
+			height: 2.5em;
+		}
+		
+		.corner img {
+			width: 1.5em;
+			height: 1.5em;
+		}
+	}
+
+	@media (max-width: 640px) {
+		nav a {
+			padding: 0 0.5rem;
+			font-size: 0.7rem;
+			letter-spacing: 0.05em;
+		}
+		
+		ul {
+			height: 2.5em;
+		}
+		
+		svg {
+			height: 2.5em;
+		}
 	}
 </style>
 

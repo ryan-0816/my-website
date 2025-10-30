@@ -1,559 +1,423 @@
-<script>
-  import { onMount } from 'svelte';
-  import { writable } from 'svelte/store';
+<script lang="ts">
+  // ===== EDIT ME =====
+  export let name = "RYAN TAGEN";
+  const tagline = "Cybersecurity • Systems • Builder";
 
-  let images = [
-    "/image.jpg",
-    "/image1.jpg",
-    "/image2.jpg",
-    "/image3.jpg"
+  const images: string[] = [
+    "/photos/photo1.jpg",
+    "/photos/photo2.jpg",
+    "/photos/photo3.jpg",
+    "/photos/photo4.jpg",
+    "/photos/photo5.jpg",
+    "/photos/photo6.jpg",
+    "/photos/photo7.jpg",
+    "/photos/photo8.jpg",
+    "/photos/photo9.jpg",
+    "/photos/photo10.jpg",
+    "/photos/photo11.jpg",
+    "/photos/photo12.jpg",
+    "/photos/photo13.jpg",
+    "/photos/photo14.jpg",
+    "/photos/photo15.jpg",
+    "/photos/photo16.jpg"
   ];
 
-  let logoImage = "/logo.jpg";
-
-  let current = 0;
-  let total = images.length;
-
-  const showScrollHint = writable(true);
-  const showCopiedNotification = writable(false);
-  /**
-     * @type {number | undefined}
-     */
-  let notificationTimeout;
-
-  // E-Board members data
-  const eboardMembers = [
-    { position: "President", name: "Emereson Ostrander", email: "eeo7010@rit.edu" },
-    { position: "Vice President", name: "Jack Smith", email: "jas3139@rit.edu" },
-    { position: "Treasurer", name: "Emma Duprey", email: "ead8357@rit.edu" },
-    { position: "Treasurer", name: "Finn Sheridan-Crane", email: "fms7124@rit.edu" },
-    { position: "Secretary", name: "Ryan Tagen", email: "rst4035@rit.edu" },
-    { position: "Public Relations", name: "Julia Kress", email: "jek5095@rit.edu" }
+  const links = [
+    { href: "https://github.com/ryan-0816", label: "GitHub", icon: "github" },
+    { href: "https://www.linkedin.com/in/ryantagen", label: "LinkedIn", icon: "linkedin" },
+    { href: "mailto:rst4035@rit.edu", label: "Email", icon: "mail" },
+    { href: "/Ryan Tagen Resume.pdf", label: "Resume", icon: "file" } // <-- added resume link
   ];
+  // ====================
 
-  function handleScroll() {
-    const scrollPosition = window.scrollY + window.innerHeight;
-    const fullHeight = document.documentElement.scrollHeight;
+  // Place images on responsive rings inside a 100x100 stage (percent coords)
+  type Pos = { x: number; y: number; size: number; delay: number };
+  const ringRadiiPct = [24, 36, 46];     // ring radii as PERCENT of stage (fits all screens)
+  const ringCount = ringRadiiPct.length;
+  const perRing = Math.ceil(images.length / ringCount);
 
-    if (scrollPosition >= fullHeight - 100) {
-      showScrollHint.set(false);
-    } else {
-      showScrollHint.set(true);
-    }
-  }
-
-  async function copyPassword() {
-    try {
-      await navigator.clipboard.writeText(password);
-      if (notificationTimeout) clearTimeout(notificationTimeout);
-      showCopiedNotification.set(true);
-      notificationTimeout = setTimeout(() => {
-        showCopiedNotification.set(false);
-      }, 1500);
-    } catch (err) {
-      // Fail silently
-    }
-  }
-
-  onMount(() => {
-    const interval = setInterval(() => {
-      current = (current + 1) % total;
-    }, 4000);
-
-    window.addEventListener('scroll', handleScroll);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('scroll', handleScroll);
-      if (notificationTimeout) clearTimeout(notificationTimeout);
-    };
+  const positions: Pos[] = images.map((_, i) => {
+    const ring = Math.min(Math.floor(i / perRing), ringCount - 1);
+    const idxInRing = i % perRing;
+    const t = (idxInRing / perRing) * Math.PI * 2;
+    const R = ringRadiiPct[ring];
+    const jitter = (s: number) => Math.sin(s * 2.13) * 1.2; // small organic offset (in %)
+    const x = 50 + R * Math.cos(t) + jitter(i);
+    const y = 50 + R * Math.sin(t) + jitter(i + 1);
+    const size = 12 + (Math.sin(i * 1.33) + 1) * 2.5;       // 12–17% of stage
+    const delay = (i * 90) % 1000;
+    return { x, y, size, delay };
   });
 
-  let qrCodeSrc = "/qr-code.png";
-  const password = "alpine25";
+  // Minimal parallax—safe so it never breaks bounds (applied inside the stage)
+  let mx = 0, my = 0; // normalized -0.5..0.5
+  const onPointerMove = (e: PointerEvent) => {
+    const w = window.innerWidth || 1;
+    const h = window.innerHeight || 1;
+    mx = (e.clientX / w) - 0.5;
+    my = (e.clientY / h) - 0.5;
+  };
+
+  // Hover line to the center
+  let hoverIndex: number | null = null;
+
+  const iconPath = (name: string) => {
+    switch (name) {
+      case "github":
+        return "M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.73-4.04-1.61-4.04-1.61-.55-1.38-1.35-1.75-1.35-1.75-1.1-.76.08-.74.08-.74 1.22.09 1.86 1.27 1.86 1.27 1.08 1.85 2.83 1.32 3.52 1.01.11-.79.42-1.32.77-1.63-2.66-.3-5.46-1.33-5.46-5.93 0-1.31.47-2.38 1.25-3.22-.13-.3-.54-1.52.12-3.16 0 0 1.01-.32 3.3 1.23a11.4 11.4 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.64.25 2.86.12 3.16.78.84 1.25 1.91 1.25 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.82 1.1.82 2.22v3.29c0 .33.22.7.83.58A12 12 0 0 0 12 .5Z";
+      case "linkedin":
+        return "M4.98 3.5a2.5 2.5 0 1 1-.02 5 2.5 2.5 0 0 1 .02-5zM3 8.98h3.96v12.5H3V8.98zm6.74 0H14v1.7h.05c.58-1.1 2-2.25 4.12-2.25 4.41 0 5.23 2.9 5.23 6.67v6.38H19.4v-5.66c0-1.35-.02-3.09-1.88-3.09-1.88 0-2.17 1.47-2.17 2.99v5.76H11.7V8.98z";
+      case "mail":
+        return "M2 6l10 7 10-7v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm20-2H2l10 7 10-7z";
+      case "file":
+        return "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z";
+      default:
+        return "";
+    }
+  };
 </script>
 
-<style>
-  body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    overflow-x: hidden;
-    -webkit-text-size-adjust: 100%; /* Prevent font scaling in landscape */
-  }
+<div class="page" on:pointermove={onPointerMove}>
+  <div class="bg"></div>
 
-  main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem 0 6rem;
-    width: 100%;
-    max-width: 100vw;
-    box-sizing: border-box;
-  }
+  <div class="stage">
+    <svg class="constellation" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      {#if hoverIndex !== null}
+        {#key hoverIndex}
+          <line
+            x1="50" y1="50"
+            x2={positions[hoverIndex].x} y2={positions[hoverIndex].y}
+            class="beam"
+          />
+        {/key}
+      {/if}
+    </svg>
 
-  .welcome-box {
-    background-color: #e6f0e8;
-    border: 4px solid #5a6f54;
-    padding: 2rem 1.5rem;
-    border-radius: 25px;
-    box-shadow: 0 0 30px 8px rgba(60, 130, 180, 0.5);
-    text-align: center;
-    width: 1000px;
-    max-width: 95vw;
-    margin-bottom: 2rem;
-    box-sizing: border-box;
-  }
-
-  .welcome-box h1 {
-    margin: 0;
-    font-size: 4rem;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #264d40;
-    text-shadow:
-      0 0 8px #a3c4f3bb,
-      0 0 16px #a3c4f355;
-  }
-
-  @media (max-width: 768px) {
-    .welcome-box h1 {
-      font-size: 2.5rem;
-      line-height: 1.2;
-    }
-  }
-
-  .content-container {
-    width: 1000px;
-    max-width: 95vw;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    align-items: stretch;
-  }
-
-  @media (min-width: 1024px) {
-    .content-container {
-      flex-direction: row;
-    }
-  }
-
-  .left-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    justify-content: flex-start;
-  }
-
-  .carousel {
-    height: 380px;
-    border-radius: 25px;
-    overflow: hidden;
-    border: 4px solid #5a6f54;
-    box-shadow: 0 0 30px 6px rgba(60, 130, 180, 0.3);
-    background: #f9fbf9;
-    position: relative;
-  }
-
-  @media (max-width: 768px) {
-    .carousel {
-      height: 250px;
-    }
-  }
-
-  .carousel img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0;
-    transition: opacity 1.2s ease-in-out;
-  }
-
-  .carousel img.active {
-    opacity: 1;
-    z-index: 1;
-  }
-
-  .logo-box {
-    border-radius: 25px;
-    overflow: hidden;
-    border: 4px solid #5a6f54;
-    box-shadow: 0 0 30px 6px rgba(60, 130, 180, 0.3);
-    background: #f9fbf9;
-    flex-grow: 1;
-    height: auto;
-    min-height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .logo-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 1rem;
-    box-sizing: border-box;
-  }
-
-  .about-us {
-    flex: 1;
-    background: linear-gradient(135deg, #cde3f7, #a0b8d9);
-    border: 4px solid #5a6f54;
-    border-radius: 25px;
-    padding: 1.5rem;
-    box-shadow: 0 0 30px 6px rgba(90, 111, 84, 0.3);
-    color: #213544;
-    font-size: 1.1rem;
-    line-height: 1.6;
-    user-select: text;
-    overflow-y: auto;
-    min-height: auto;
-  }
-
-  @media (min-width: 768px) {
-    .about-us {
-      font-size: 1.3rem;
-      min-height: 600px;
-    }
-  }
-
-  /* E-Board Section Styles */
-  .eboard-container {
-    width: 1000px;
-    max-width: 95vw;
-    background: linear-gradient(135deg, #e6f0e8, #cde3f7);
-    border: 4px solid #5a6f54;
-    border-radius: 25px;
-    padding: 2rem 1.5rem;
-    box-shadow: 0 0 30px 6px rgba(60, 130, 180, 0.3);
-    margin-bottom: 2rem;
-    color: #213544;
-    box-sizing: border-box;
-  }
-
-  .eboard-container h2 {
-    text-align: center;
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
-    color: #264d40;
-    text-shadow: 0 0 5px #a3c4f3bb;
-  }
-
-  @media (min-width: 768px) {
-    .eboard-container h2 {
-      font-size: 2.5rem;
-    }
-  }
-
-  .eboard-grid {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1.5rem;
-    max-width: 90%;
-    margin: 0 auto;
-  }
-
-  @media (min-width: 640px) {
-    .eboard-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  .eboard-member {
-    background: rgba(255, 255, 255, 0.7);
-    padding: 1.2rem;
-    border-radius: 15px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  }
-
-  .signup-box {
-    background: linear-gradient(135deg, #3b6e47, #264d40);
-    border-radius: 25px;
-    box-shadow: 0 0 40px 10px rgba(38, 77, 64, 0.9);
-    padding: 2rem 1.5rem 4rem;
-    text-align: center;
-    width: 1000px;
-    max-width: 95vw;
-    color: #d9f0ff;
-    position: relative;
-    overflow: visible;
-    box-sizing: border-box;
-  }
-
-  .signup-box h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1.5rem;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    text-shadow: 0 0 10px #a3c4f3dd;
-  }
-
-  @media (min-width: 768px) {
-    .signup-box h1 {
-      font-size: 3.5rem;
-      margin-bottom: 2rem;
-    }
-    .signup-box {
-      padding: 3rem 2rem 5rem;
-    }
-  }
-
-  .signup-link {
-    display: inline-block;
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: #d9f0ff;
-    text-decoration: none;
-    border: 3px solid #d9f0ff;
-    padding: 0.9rem 2rem;
-    border-radius: 18px;
-    transition: background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
-    box-shadow: 0 0 12px 3px #a3c4f3aa;
-    min-width: 200px;
-  }
-
-  @media (min-width: 768px) {
-    .signup-link {
-      font-size: 1.5rem;
-    }
-  }
-
-  .signup-link:hover,
-  .signup-link:focus {
-    background-color: #d9f0ff;
-    color: #264d40;
-    box-shadow: 0 0 20px 6px #ffffffcc;
-    outline: none;
-  }
-
-  .password-container {
-    margin-top: 1rem;
-    font-size: 1rem;
-    color: #d9f0ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    user-select: text;
-    position: relative;
-    flex-wrap: wrap;
-  }
-
-  @media (min-width: 768px) {
-    .password-container {
-      font-size: 1.1rem;
-      flex-wrap: nowrap;
-    }
-  }
-
-  .copy-notification {
-    position: absolute;
-    bottom: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: black;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 1rem;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-
-  .copy-notification.show {
-    opacity: 1;
-  }
-
-  .qr-container {
-    max-width: 220px;
-    margin: 2rem auto 0;
-    border-radius: 25px;
-    box-shadow: 0 0 20px 5px #a3c4f3cc;
-    overflow: hidden;
-  }
-
-  @media (min-width: 768px) {
-    .qr-container {
-      margin: 3rem auto 0;
-    }
-  }
-
-  .qr-container img {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  .scroll-hint {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #000000ee;
-    text-shadow: none;
-    animation: bounce 2.5s infinite ease-in-out;
-    user-select: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    z-index: 9999;
-    pointer-events: none;
-    transition: opacity 0.5s ease;
-  }
-
-  .scroll-hint.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .scroll-hint svg {
-    width: 24px;
-    height: 24px;
-    stroke: #000000ee;
-    stroke-width: 3;
-    fill: none;
-    animation: arrowDown 2.5s infinite ease-in-out;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translate(-50%, 0); }
-    50% { transform: translate(-50%, 15px); }
-  }
-
-  @keyframes arrowDown {
-    0%, 100% { opacity: 1; transform: translateY(0); }
-    50% { opacity: 0.4; transform: translateY(8px); }
-  }
-</style>
-
-<main>
-  <div class="welcome-box" role="banner">
-    <h1>Welcome to RIT Alpine Ski Club!</h1>
-  </div>
-
-  <div class="content-container">
-    <div class="left-column">
-      <div class="carousel" aria-label="Ski Club photo carousel">
-        {#each images as src, i}
-          <img src={src} alt={`Ski Club image ${i + 1}`} class={i === current ? 'active' : ''} />
+    <div class="center">
+      <h1 class="name">{name}</h1>
+      <p class="tag">{tagline}</p>
+      <nav class="links" aria-label="social links">
+        {#each links as l}
+          <a class="pill" href={l.href} target="_blank" rel="noopener noreferrer" aria-label={l.label}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={iconPath(l.icon)} /></svg>
+            <span>{l.label}</span>
+          </a>
         {/each}
-      </div>
-      <div class="logo-box" aria-label="Club logo">
-        <img src={logoImage} alt="RIT Alpine Ski Club logo" />
-      </div>
+      </nav>
     </div>
 
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-    <section class="about-us" aria-labelledby="about-heading" tabindex="0">
-      <p>
-        RIT Alpine Ski Club! Operating during spring semester, we have two halves: recreation and race. Recreation hosts 
-        trips locally, such as to Swain Resort or Bristol Mountain, on a weekly basis. Joining the team gets you access
-        to those group discounts, carpool/transportation, and other things. The race team competes against nearby colleges
-        in both slalom and giant slalom, frequenting resorts such as Labrador Mountain, Greek Peak, Bristol Resort, and West 
-        Mountain. They also train two days a week at Swain Resort. The ski team also hosts an annual trip to Jay Peak on the 
-        last week of winter break. This is an insane package consisting of several days of amazing skiing and very fun nights for an 
-        excellent deal. If you enjoy or would like to try skiing, please reach out and see what we 
-        can set up! Any level of skiing is welcomed!
-      </p>
-    </section>
-  </div>
-
-  <!-- E-Board Section -->
-  <div class="eboard-container" role="region" aria-labelledby="eboard-heading">
-    <h2 id="eboard-heading">Meet Our Ski-Board</h2>
-    <div class="eboard-grid">
-      {#each eboardMembers as member}
-        <div class="eboard-member">
-          <div class="eboard-position">{member.position}</div>
-          <div class="eboard-name">{member.name}</div>
-          <div class="eboard-email">{member.email}</div>
+    <div class="field">
+      {#each images as src, i}
+        <div class="orbit-container" style="--orbit-index: {i};">
+          <figure
+            class="thumb"
+            style="
+              left: calc({positions[i].x}% + {mx * 1.2}%);
+              top:  calc({positions[i].y}% + {my * 1.2}%);
+              width:{positions[i].size}%;
+              height:{positions[i].size}%;
+              animation-delay:{positions[i].delay}ms;"
+            on:mouseenter={() => (hoverIndex = i)}
+            on:mouseleave={() => (hoverIndex = null)}
+          >
+            <img src={src} alt="gallery image {i + 1}" loading="lazy" />
+            <div class="gloss"></div>
+          </figure>
         </div>
       {/each}
     </div>
   </div>
+</div>
 
-  <div class="signup-box" role="region" aria-labelledby="signup-heading">
-    <h1 id="signup-heading">Ready to ski?</h1>
-    <a
-      class="signup-link"
-      href="https://campusgroups.rit.edu/AlpineSki/club_signup"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Sign Up Here
-    </a>
+<style>
+  /* ——— Palette: dark red & gray ——— */
+  :root{
+    --bg-0:#1b1c20;
+    --bg-1:#22242a;
+    --bg-2:#2a2d34;
+    --ink:#e8e8ee;
+    --muted:#a9acb8;
+    --deep-red:#7d0e0e;
+    --dark-crimson:#5f0b0b;
+    --glow-red:#c21f1f;
+  }
 
-    <div class="password-container">
-      <span><strong>Password:</strong> alpine25</span>
-      <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-      <button
-        on:click={copyPassword}
-        style="
-          background: #d9f0ff;
-          border: none;
-          border-radius: 12px;
-          padding: 0.3rem 0.8rem;
-          font-weight: 700;
-          color: #264d40;
-          cursor: pointer;
-          box-shadow: 0 0 6px #a3c4f3cc;
-          transition: background-color 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 44px;
-          min-height: 44px;
-        "
-        on:mouseover={e => e.currentTarget.style.backgroundColor = '#bcd8ff'}
-        on:mouseout={e => e.currentTarget.style.backgroundColor = '#d9f0ff'}
-        aria-label="Copy password alpine 24 to clipboard"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          fill="none"
-          stroke="#264d40"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <rect x="2" y="2" width="13" height="13" rx="2" ry="2"></rect>
-        </svg>
-      </button>
-      {#if $showCopiedNotification}
-        <div class="copy-notification show">
-          Copied to clipboard!
-        </div>
-      {/if}
-    </div>
+  /* Reset margins and padding to ensure full coverage */
+  :global(html), :global(body) {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
 
-    <div class="qr-container" aria-label="QR code to join RIT Alpine Ski Club">
-      <img src={"/qrcode.jpg"} alt="QR code for RIT Alpine Ski Club signup" />
-    </div>
-  </div>
+  /* Full viewport + perfect centering */
+  .page{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    background: var(--bg-0);
+    overflow: hidden;
+    position: relative;
+    color: var(--ink);
+    font-family: Inter, SF Pro Text, Segoe UI, Roboto, system-ui, -apple-system, Arial, sans-serif;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+  }
+  @supports (height: 100dvh){
+    .page{ 
+      height: 100dvh;
+      min-height: 100dvh;
+    }
+  }
+  @supports (height: 100svh){
+    .page{ 
+      height: 100svh;
+      min-height: 100svh;
+    }
+  }
 
-  {#if $showScrollHint}
-    <div class="scroll-hint" aria-hidden="true">
-      <span>Scroll down</span>
-      <svg viewBox="0 0 24 24" >
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
-    </div>
-  {/if}
-</main>
+  /* Soft texture + crimson bloom */
+  .bg{
+    position:absolute; 
+    inset:0; 
+    z-index:0;
+    background:
+      radial-gradient(120vmax 80vmax at 70% 30%, rgba(194,31,31,0.12), transparent 60%),
+      radial-gradient(90vmax 90vmax at 20% 80%, rgba(125,14,14,0.12), transparent 60%),
+      linear-gradient(180deg, var(--bg-2), var(--bg-1) 40%, var(--bg-0));
+  }
+  .bg::after{
+    content:""; 
+    position:absolute; 
+    inset:-150%;
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 3px 3px; 
+    opacity:.18;
+    animation: grain 40s linear infinite;
+  }
+  @keyframes grain{ 
+    to { 
+      transform: translate3d(-8%, -8%, 0); 
+    } 
+  }
+
+  /* The magic: a perfectly centered square stage that fits any viewport */
+  .stage{
+    position: relative;
+    width: min(90vmin, 90vh);
+    height: min(90vmin, 90vh);
+    aspect-ratio: 1 / 1;
+    z-index: 1;
+    margin: 0 auto;
+  }
+
+  /* Constellation beam lives in stage coordinates (0..100%) */
+  .constellation{
+    position:absolute; 
+    inset:0; 
+    z-index:2; 
+    pointer-events:none;
+  }
+  .beam{
+    stroke: var(--glow-red);
+    stroke-width: .6; 
+    vector-effect: non-scaling-stroke; 
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 .6vmin rgba(194,31,31,.65));
+    animation: ping 360ms ease-out;
+  }
+  @keyframes ping{ 
+    from{ 
+      opacity:0; 
+      stroke-width:.3; 
+    } 
+    to{ 
+      opacity:1; 
+      stroke-width:.6; 
+    } 
+  }
+
+  .center{
+    position:absolute; 
+    inset:0; 
+    z-index:3;
+    display:flex; 
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align:center;
+    padding: 6vmin;
+  }
+  .name{
+    font-size: clamp(2.6rem, 9vmin, 8rem);
+    line-height: .95; 
+    margin: 0 0 .5rem 0;
+    letter-spacing: .04em;
+    background: linear-gradient(180deg, #f3f3f6, #c7c9d3 65%, #9ea3b1);
+    -webkit-background-clip:text; 
+    background-clip:text; 
+    color: transparent;
+  }
+  .tag{
+    margin: 0 0 1.2rem 0;
+    color: var(--muted);
+    font-size: clamp(.95rem, 2.2vmin, 1.15rem);
+  }
+  .links{
+    display:flex; 
+    gap:.75rem; 
+    flex-wrap:wrap; 
+    justify-content:center;
+  }
+  .pill{
+    display:inline-flex; 
+    align-items:center; 
+    gap:.5rem;
+    padding:.65rem 1.0rem; 
+    border-radius:999px;
+    color:#fff; 
+    text-decoration:none; 
+    font-weight:600; 
+    letter-spacing:.02em;
+    background: linear-gradient(180deg, var(--deep-red), var(--dark-crimson));
+    box-shadow: 0 8px 22px rgba(194,31,31,.25), inset 0 0 0 1px rgba(194,31,31,.35);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  .pill:hover{ 
+    transform: translateY(-2px); 
+    box-shadow: 0 12px 28px rgba(194,31,31,.35), inset 0 0 0 1px rgba(194,31,31,.5); 
+  }
+  .pill svg{ 
+    width:18px; 
+    height:18px; 
+    fill: currentColor; 
+  }
+
+  .field{
+    position:absolute; 
+    inset:0; 
+    z-index:2; 
+    pointer-events:none;
+  }
+
+  /* Orbit container for circular rotation */
+  .orbit-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: orbit 120s linear infinite;
+    animation-delay: calc(var(--orbit-index) * -15s);
+  }
+
+  @keyframes orbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .thumb{
+    position:absolute; 
+    transform: translate(-50%, -50%);
+    border-radius: 16px; 
+    overflow:hidden;
+    pointer-events:auto;
+    box-shadow: 0 10px 28px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.05);
+    transition: transform 200ms cubic-bezier(.2,.8,.2,1), box-shadow 200ms;
+    animation: bob 7s ease-in-out infinite, counter-rotate 120s linear infinite;
+    background: #2f323a;
+  }
+  
+  /* Counter-rotate the images to keep them upright */
+  @keyframes counter-rotate {
+    from {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+      transform: translate(-50%, -50%) rotate(-360deg);
+    }
+  }
+
+  .thumb:hover{
+    transform: translate(-50%, -50%) scale(1.04) rotate(0deg) !important;
+    box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(194,31,31,.45);
+    animation-play-state: paused;
+  }
+  @keyframes bob{ 
+    0%,100%{ 
+      translate:0 0; 
+    } 
+    50%{ 
+      translate:0 .7%; 
+    } 
+  }
+  .thumb img{ 
+    width:100%; 
+    height:100%; 
+    object-fit:cover; 
+    display:block; 
+    filter: saturate(.95) contrast(1.05); 
+  }
+  .thumb .gloss{
+    position:absolute; 
+    inset:0; 
+    pointer-events:none;
+    background:
+      radial-gradient(90% 90% at 85% 15%, rgba(255,255,255,.18), transparent 45%),
+      linear-gradient(180deg, rgba(194,31,31,.16), transparent 45%, transparent 55%, rgba(194,31,31,.12));
+    mix-blend-mode: screen;
+  }
+
+  /* Thumb sizing/placement use % of stage, so they always fit */
+  .thumb{ 
+    width: 14%; 
+    height: 14%; 
+  } /* baseline; inline style overrides with positions[i].size% */
+
+  @media (max-width: 720px){
+    .stage{ 
+      width: min(85vmin, 85vh); 
+      height: min(85vmin, 85vh); 
+    }
+    .tag{ 
+      margin-bottom: 1rem; 
+    }
+    .links {
+      gap: 0.5rem;
+    }
+    .pill {
+      padding: 0.5rem 0.8rem;
+      font-size: 0.9rem;
+    }
+    
+    /* Slow down rotation on mobile for better performance */
+    .orbit-container {
+      animation-duration: 180s;
+    }
+    
+    .thumb {
+      animation-duration: 7s, 180s;
+    }
+  }
+
+  @media (max-width: 480px){
+    .stage{ 
+      width: min(80vmin, 80vh); 
+      height: min(80vmin, 80vh); 
+    }
+    .name {
+      font-size: clamp(2rem, 8vmin, 6rem);
+    }
+    .links {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>
