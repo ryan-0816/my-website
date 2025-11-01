@@ -21,12 +21,12 @@
       dtClamp: 1 / 30
     },
     patterns: {
-      idleTimeout: 5,       // seconds before patterns start
+      idleTimeout: 30,       // seconds before patterns start
       patternDuration: 30,  // seconds each pattern displays
       transitionSpeed: 0.02 // speed of transition to pattern positions
     },
     physics: {
-      collisions: false // disable photo hitbox bouncing (photo-on-photo collisions)
+      collisions: true // ENABLE photo hitbox bouncing (photo-on-photo collisions)
     }
   };
   // =============================
@@ -246,7 +246,7 @@
     return Math.max(lo, Math.min(hi, val));
   }
 
-  // Do not bounce off inner box while forming patterns (so shapes aren’t interrupted)
+  // Do not bounce off inner box while forming patterns (so shapes aren't interrupted)
   function bounceOffInnerBox(p: PhotoState) {
     if (isFormingPattern) return;
 
@@ -274,7 +274,7 @@
     }
   }
 
-  // Collision solver kept for reference but never called when collisions=false
+  // Collision solver - now enabled during free motion
   function resolveCollisions(states: PhotoState[]) {
     for (let i = 0; i < states.length; i++) {
       for (let j = i + 1; j < states.length; j++) {
@@ -383,7 +383,7 @@
       bounceOffInnerBox(p);
     }
 
-    // Disable photo hitbox bouncing entirely if configured
+    // Only resolve collisions during free motion AND when collisions are enabled
     if (!isFormingPattern && CONFIG.physics.collisions) {
       resolveCollisions(photoStates);
     }
@@ -415,7 +415,15 @@
     if (isFormingPattern) {
       // Break out of pattern mode on interaction
       isFormingPattern = false;
-      photoStates.forEach(p => { p.targetX = undefined; p.targetY = undefined; });
+      photoStates.forEach(p => { 
+        p.targetX = undefined; 
+        p.targetY = undefined; 
+        // Give them some random motion when breaking out
+        const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
+        const angle = rand(0, Math.PI * 2);
+        p.vx = Math.cos(angle) * speed;
+        p.vy = Math.sin(angle) * speed;
+      });
     }
   }
 
@@ -428,7 +436,15 @@
     lastActivityTime = Date.now();
     if (isFormingPattern) {
       isFormingPattern = false;
-      photoStates.forEach(p => { p.targetX = undefined; p.targetY = undefined; });
+      photoStates.forEach(p => { 
+        p.targetX = undefined; 
+        p.targetY = undefined; 
+        // Re-enable natural motion
+        const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
+        const angle = rand(0, Math.PI * 2);
+        p.vx = Math.cos(angle) * speed;
+        p.vy = Math.sin(angle) * speed;
+      });
     }
   }
 
