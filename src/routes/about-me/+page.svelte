@@ -1,50 +1,52 @@
-<!-- AboutStack.svelte — stacked, scrollable “hero” cards with gray glass backgrounds + side accent lines -->
+<!-- AboutStack.svelte — scrollable “hero” cards with gray glass backgrounds -->
 <script lang="ts">
   const CONFIG = {
     width: 92,
     maxWidth: 1100,
     cardPad: 14,
     gap: 14,
-    cardHeight: 360 // <-- change this to adjust card height (px)
+    cardHeight: 360 // default height if a section doesn't override it
   };
 
   export let name = "RYAN TAGEN";
   const tagline = "Cybersecurity";
 
   const baseAbout = `
-  Hi! I’m Ryan, an accelerated BS/MS cybersecurity student at RIT. I love partaking in 
-  cybersecurity related activities, playing sports, and my sense community here at college!
-  I am currently looking to apply my technical and practical skills in a co-op in summer of 
-  2026 in cybersecurity, computer science, information technology, or a related field. The 
-  rest of this page summarizes my resume, along with some other hobbies and things about me!
-  `;
+  Hi! I’m Ryan, an accelerated BS/MS cybersecurity student at RIT. I love partaking in cybersecurity related activities, playing sports, and my sense community here at college! I am currently looking to apply my technical and practical skills in a co-op in summer of 2026 in cybersecurity, computer science, information technology, or a related field. The rest of this page summarizes my resume, along with some other hobbies and things about me!`;
 
-  const about2 = `
-  Static Website Deployment with Terraform \n
+  const about2 = `<b>Static Website Deployment with Terraform</b>
   • Provisioned modular, version-controlled static web hosting using infrastructure as code
-  • Deployed optimized assets for a consistent, reliable user experience and repeatable builds
-  Network Intrusion Monitor Script \n
-  • Python/Scapy script to detect port scans, brute force attempts, and suspicious DNS activity
-  Website Development \n
-  • Developed Svelte-based ewbpages for student organizations with Google service integration
-  Northland Hackathon \n
-  • Developed a course recommendation webpage pased on student academic history
+  • Deployed optimized assets for a consistent, reliable experience and repeatable builds
+
+  <b>Network Intrusion Monitor Script</b>
+  • Python/Scapy script to detect port scans, brute-force attempts, and suspicious DNS activity
+
+  <b>Website Development</b>
+  • Developed Svelte-based webpages for student organizations such as the Alpine Ski Club and Chinese Conversation Table
+  • Integrated google services such as calendar to convey schedules
+
+  <b>Northland Hackathon</b>
+  • Developed a course recommendation webpage based on student academic history
   `;
 
-  const about3 = `
-  number 3
+  const about3 = `<b>Student Inventory Control Specialist</b>
+  •  Managed tools, parts, and supply logistics across campus in collaboration with mechanics.
+  • Maintained inventory records and enforced access control to secure storage areas.
+  <b>Ski Instructor</b>
   `;
+  const about4 = `4`;
 
-  const about4 = `
-  4
-  `;
+  type IconName = "github" | "linkedin" | "mail" | "file";
 
   type Card = {
     heading: string;
     sub?: string;
-    about: string;
-    photo: string;
-    links?: { href: string; label: string; icon: "github" | "linkedin" | "mail" | "file" }[];
+    about: string;                 // may contain inline HTML (e.g., <b>)
+    photo?: string;                // single image path (non-project sections)
+    photoGrid?: { src: string; href: string; alt?: string; }[]; // for 4 stacked images
+    height?: number | "auto";      // per-section height control
+    links?: { href: string; label: string; icon: IconName }[];      // first card links
+    extraLinks?: { href: string; label: string; icon: IconName }[]; // bottom links per card
   };
 
   const defaultLinks: Card["links"] = [
@@ -54,25 +56,32 @@
     { href: "/Ryan Tagen Resume.pdf", label: "Resume", icon: "file" }
   ];
 
-  const sections: Card[] = [
-    { heading: name, sub: tagline, about: baseAbout, photo: "/photos/photo5.jpg", links: defaultLinks },
-    { heading: "Personal Projects", sub: "Builds • Scripts • Infra", about: about2, photo: "/photos/photo9.jpg" },
-    { heading: "Work Experience", sub: "Labs • Clubs • Ops", about: about3, photo: "/photos/photo14.jpg" },
-    { heading: "Hobbies", sub: "Skiing • Sailing • Tinkering", about: about4, photo: "/photos/photo18.jpg" }
+  const projectTiles: Required<Card>["photoGrid"] = [
+    { src: "/terraform.png",  href: "#", alt: "Terraform static hosting" },
+    { src: "/photos/photo10.jpg", href: "https://github.com/ryan-0816/Scripts", alt: "Network intrusion monitor" },
+    { src: "/ski website.png", href: "https://github.com/ryan-0816/ski", alt: "Ski Club Website" },
+    { src: "/photos/photo12.jpg", href: "#", alt: "Hackathon demo" }
   ];
 
-  const iconPath = (name: string) => {
+  const projectExtraLinks: Card["extraLinks"] = [
+    { href: "https://github.com/ryan-0816", label: "Project Repos", icon: "github" },
+    { href: "/Ryan Tagen Resume.pdf", label: "Project Summary (PDF)", icon: "file" }
+  ];
+
+  const sections: Card[] = [
+    { heading: name, sub: tagline, about: baseAbout, photo: "/photos/photo5.jpg", links: defaultLinks, height: 380 },
+    // ↑↑ Card 2: more height for bigger previews
+    { heading: "Personal Projects", sub: "Builds • Scripts • Infra", about: about2, photoGrid: projectTiles, extraLinks: projectExtraLinks, height: 720 },
+    { heading: "Work Experience", sub: "Labs • Clubs • Ops", about: about3, photo: "/photos/photo14.jpg", height: 360 },
+    { heading: "Hobbies", sub: "Skiing • Sailing • Tinkering", about: about4, photo: "/photos/photo18.jpg", height: "auto" }
+  ];
+
+  const iconPath = (name: IconName) => {
     switch (name) {
-      case "github":
-        return "M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.73-4.04-1.61-4.04-1.61-.55-1.38-1.35-1.75-1.35-1.75-1.1-.76.08-.74.08-.74 1.22.09 1.86 1.27 1.86 1.27 1.08 1.85 2.83 1.32 3.52 1.01.11-.79.42-1.32.77-1.63-2.66-.30-5.46-1.33-5.46-5.93 0-1.31.47-2.38 1.25-3.22-.13-.30-.54-1.52.12-3.16 0 0 1.01-.32 3.30 1.23a11.4 11.4 0 0 1 6.01 0c2.29-1.55 3.30-1.23 3.30-1.23.66 1.64.25 2.86.12 3.16.78.84 1.25 1.91 1.25 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.82 1.10.82 2.22v3.29c0 .33.22.70.83.58A12 12 0 0 0 12 .5Z";
-      case "linkedin":
-        return "M4.98 3.5a2.5 2.5 0 1 1-.02 5 2.5 2.5 0 0 1 .02-5zM3 8.98h3.96v12.5H3V8.98zm6.74 0H14v1.7h.05c.58-1.10 2-2.25 4.12-2.25 4.41 0 5.23 2.90 5.23 6.67v6.38H19.4v-5.66c0-1.35-.02-3.09-1.88-3.09-1.88 0-2.17 1.47-2.17 2.99v5.76H11.7V8.98z";
-      case "mail":
-        return "M2 6l10 7 10-7v10a2 2 0  0 1-2 2H4a2 2 0 0 1-2-2V6zm20-2H2l10 7 10-7z";
-      case "file":
-        return "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z";
-      default:
-        return "";
+      case "github": return "M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.73-4.04-1.61-4.04-1.61-.55-1.38-1.35-1.75-1.35-1.75-1.1-.76.08-.74.08-.74 1.22.09 1.86 1.27 1.86 1.27 1.08 1.85 2.83 1.32 3.52 1.01.11-.79.42-1.32.77-1.63-2.66-.30-5.46-1.33-5.46-5.93 0-1.31.47-2.38 1.25-3.22-.13-.30-.54-1.52.12-3.16 0 0 1.01-.32 3.30 1.23a11.4 11.4 0 0 1 6.01 0c2.29-1.55 3.30-1.23 3.30-1.23.66 1.64.25 2.86.12 3.16.78.84 1.25 1.91 1.25 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.82 1.10.82 2.22v3.29c0 .33.22.70.83.58A12 12 0 0 0 12 .5Z";
+      case "linkedin": return "M4.98 3.5a2.5 2.5 0 1 1-.02 5 2.5 2.5 0 0 1 .02-5zM3 8.98h3.96v12.5H3V8.98zm6.74 0H14v1.7h.05c.58-1.10 2-2.25 4.12-2.25 4.41 0 5.23 2.90 5.23 6.67v6.38H19.4v-5.66c0-1.35-.02-3.09-1.88-3.09-1.88 0-2.17 1.47-2.17 2.99v5.76H11.7V8.98z";
+      case "mail": return "M2 6l10 7 10-7v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm20-2H2l10 7 10-7z";
+      case "file": return "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z";
     }
   };
 </script>
@@ -91,17 +100,20 @@
       --wrap-max: {CONFIG.maxWidth}px;
       --card-pad: {CONFIG.cardPad}px;
       --stack-gap: {CONFIG.gap}px;
-      --card-h: {CONFIG.cardHeight}px; /* CSS var used for card height */
     "
   >
     <div class="stack">
       {#each sections as s, i}
-        <section class="hero card">
+        <section
+          class="hero card"
+          style="height: {s.height === 'auto' ? 'auto' : (s.height ?? CONFIG.cardHeight) + 'px'}"
+        >
           <!-- TEXT COLUMN -->
           <div class="hero-text">
             <h1 class="name">{s.heading}</h1>
             {#if s.sub}<p class="tag">{s.sub}</p>{/if}
-            <p class="lead">{s.about}</p>
+
+            <div class="lead">{@html s.about}</div>
 
             {#if i === 0 && s.links}
               <nav class="links first-card" aria-label="links">
@@ -113,13 +125,37 @@
                 {/each}
               </nav>
             {/if}
+
+            {#if s.extraLinks}
+              <nav class="links bottom-links" aria-label="{s.heading} links">
+                {#each s.extraLinks as l}
+                  <a class="pill" href={l.href} target="_blank" rel="noopener noreferrer" aria-label={l.label}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d={iconPath(l.icon)} /></svg>
+                    <span>{l.label}</span>
+                  </a>
+                {/each}
+              </nav>
+            {/if}
           </div>
 
           <!-- IMAGE COLUMN -->
-          <figure class="hero-photo" aria-label="illustrative photo">
-            <img src={s.photo} alt="Section photo" loading="lazy" decoding="async" />
-            <div class="gloss"></div>
-          </figure>
+          {#if s.photoGrid}
+            <div class="hero-photo-grid projects-grid" aria-label="project previews">
+              {#each s.photoGrid as tile}
+                <a class="project-thumb" href={tile.href} target="_blank" rel="noopener noreferrer" aria-label={tile.alt ?? 'Project link'}>
+                  <img src={tile.src} alt={tile.alt ?? 'Project image'} loading="lazy" decoding="async" />
+                  <div class="gloss"></div>
+                </a>
+              {/each}
+            </div>
+          {:else}
+            {#if s.photo}
+              <figure class="hero-photo" aria-label="illustrative photo">
+                <img src={s.photo} alt="Section photo" loading="lazy" decoding="async" />
+                <div class="gloss"></div>
+              </figure>
+            {/if}
+          {/if}
         </section>
       {/each}
     </div>
@@ -131,13 +167,12 @@
     --bg-0:#1b1c20; --bg-1:#22242a; --bg-2:#2a2d34;
     --ink:#e8e8ee; --muted:#a9acb8;
     --deep-red:#7d0e0e; --dark-crimson:#5f0b0b; --glow-red:#c21f1f;
-    --card:#2a2d34cc; /* gray glass */
+    --card:#2a2d34cc;
     --card-border:#ffffff1f;
   }
 
-  /* Ensure entire page scrolls (even if another route set overflow hidden) */
-  :global(html),
-  :global(body){
+  /* Ensure this page scrolls */
+  :global(html), :global(body){
     margin: 0;
     padding: 0;
     min-height: 100%;
@@ -148,30 +183,18 @@
     overflow-x: hidden !important;
   }
 
-  /* Page grows with content; no fixed viewport clamp */
-  .page {
-    position: relative;
-    min-height: 100vh;
-  }
+  .page { position: relative; min-height: 100vh; }
 
-  /* Fixed atmospheric background */
   .bg{
-    position: fixed;
-    inset: 0;
-    z-index: 0;
+    position: fixed; inset: 0; z-index: 0;
     background:
       radial-gradient(120vmax 80vmax at 70% 30%, rgba(194,31,31,0.12), transparent 60%),
       radial-gradient(90vmax 90vmax at 20% 80%, rgba(125,14,14,0.12), transparent 60%),
       linear-gradient(180deg, var(--bg-2), var(--bg-1) 40%, var(--bg-0));
   }
 
-  /* NEW: dark/black gutters on the sides, preserved while scrolling */
   .edge-shade{
-    position: fixed;
-    inset: 0;
-    z-index: 1;          /* above .bg, below content */
-    pointer-events: none;
-    /* Side falloff: keep center clear, darken edges */
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
     background:
       linear-gradient(90deg,
         rgba(0,0,0,.65) 0%,
@@ -193,19 +216,9 @@
     mask-image: linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
   }
 
-  .wrap{
-    position: relative; z-index: 3;  /* above fixed layers */
-    width: min(var(--wrap-w), var(--wrap-max));
-    margin: 0 auto;
-    padding: 6vmin 2vmin;
-  }
+  .wrap{ position: relative; z-index: 3; width: min(var(--wrap-w), var(--wrap-max)); margin: 0 auto; padding: 6vmin 2vmin; }
+  .stack{ display: grid; gap: var(--stack-gap); }
 
-  .stack{
-    display: grid;
-    gap: var(--stack-gap);
-  }
-
-  /* Card */
   .card{
     background: var(--card);
     border: 1px solid var(--card-border);
@@ -215,69 +228,45 @@
     backdrop-filter: blur(12px);
   }
 
-  /* Hero layout: fixed height from CSS var (editable) so total content height = N * cardHeight + gaps */
   .hero{
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
+    grid-template-columns: 1.2fr 1fr; /* default layout */
     gap: 16px;
-    align-items: start;
-    height: var(--card-h);
+    align-items: stretch;
   }
 
-  /* On narrow screens, let height auto so content can expand naturally. */
+  /* === Target ONLY the 2nd card (Personal Projects) === */
+  .stack > section.hero:nth-of-type(2){
+    grid-template-columns: 1.5fr 0.9fr; /* more room for text, pushes images right */
+  }
+  .stack > section.hero:nth-of-type(2) .projects-grid{
+    margin-left: 1rem;            /* shifts the left border of images to the right */
+    min-height: 520px;            /* taller image column for more visual area */
+  }
+
   @media (max-width: 880px){
-    .hero{
-      grid-template-columns: 1fr;
-      height: auto;
+    .hero{ grid-template-columns: 1fr; height: auto !important; }
+    .stack > section.hero:nth-of-type(2) .projects-grid{
+      margin-left: 0;             /* reset on mobile */
+      min-height: 360px;
     }
   }
 
-  /* TEXT COLUMN */
-  .hero-text {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: center;
-    gap: .4rem;
-  }
-
+  .hero-text { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; gap: .6rem; }
   .hero-text .name {
-    align-self: stretch;
-    text-align: center;
-    font-size: clamp(1.8rem, 6vmin, 3.2rem);
-    line-height: .95;
-    margin: 0;
-    letter-spacing: .04em;
+    align-self: stretch; text-align: center; font-size: clamp(1.8rem, 6vmin, 3.2rem);
+    line-height: .95; margin: 0; letter-spacing: .04em;
     background: linear-gradient(180deg, #f3f3f6, #c7c9d3 65%, #9ea3b1);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
   }
+  .tag { margin: 0; color: var(--muted); font-size: clamp(.9rem, 2vmin, 1.05rem); }
 
-  .tag {
-    margin: 0;
-    color: var(--muted);
-    font-size: clamp(.9rem, 2vmin, 1.05rem);
+  .lead { margin: .2rem 0 0 0; line-height: 1.45; color: #ececf2; max-width: 700px; white-space: pre-line; }
+  .lead b, .lead strong { font-weight: 800; color: #f0f2f8; }
+
+  .links.first-card, .links.bottom-links {
+    display: flex; justify-content: center; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: .9rem;
   }
-
-  .lead {
-    margin: .4rem 0 0 0;
-    line-height: 1.45;
-    color: #ececf2;
-    max-width: 700px;
-  }
-
-  /* First card links under the about text */
-  .links.first-card {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: .6rem;
-    flex-wrap: wrap;
-    margin-top: .9rem;
-  }
-
   .pill{
     display:inline-flex; align-items:center; gap:.5rem; padding:.55rem 1rem; border-radius:999px;
     color:#fff; text-decoration:none; font-weight:600; letter-spacing:.02em;
@@ -290,29 +279,30 @@
   .pill:focus-visible { outline: 2px solid var(--glow-red); outline-offset: 2px; }
   .pill svg{ width:16px; height:16px; fill: currentColor; }
 
-  /* IMAGE COLUMN — image fills the box height while preserving composition */
   .hero-photo{
-    position: relative;
-    border-radius: 14px;
-    overflow: hidden;
-    margin: 0;
-    height: 100%;
-    min-height: 180px;
-    background: #2a2d34;
+    position: relative; border-radius: 14px; overflow: hidden; margin: 0; height: 100%; min-height: 180px; background: #2a2d34;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
   }
-  .hero-photo img{
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: saturate(.97) contrast(1.04);
+  .hero-photo img{ display:block; width:100%; height:100%; object-fit:cover; filter: saturate(.97) contrast(1.04); }
+  .hero-photo .gloss{ position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(60% 60% at 80% 10%, rgba(255,255,255,.16), transparent 55%),
+                linear-gradient(180deg, rgba(255,255,255,.06), transparent 45%, transparent 55%, rgba(255,255,255,.05));
+    mix-blend-mode: screen; }
+
+  .hero-photo-grid{
+    display: grid; grid-template-rows: repeat(4, 1fr); gap: 8px; height: 100%; min-height: 220px;
   }
-  .hero-photo .gloss{
-    position:absolute; inset:0; pointer-events:none;
-    background:
-      radial-gradient(60% 60% at 80% 10%, rgba(255,255,255,.16), transparent 55%),
-      linear-gradient(180deg, rgba(255,255,255,.06), transparent 45%, transparent 55%, rgba(255,255,255,.05));
-    mix-blend-mode: screen;
+  .project-thumb{
+    position: relative; display: block; width: 100%; height: 100%; border-radius: 12px; overflow: hidden; background: #2a2d34;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); transition: transform 140ms ease, box-shadow 140ms ease;
   }
+  .project-thumb:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,0.06); }
+  .project-thumb:focus-visible{ outline: 2px solid var(--glow-red); outline-offset: 2px; }
+  .project-thumb img{ display:block; width:100%; height:100%; object-fit:cover; filter: saturate(.98) contrast(1.04); }
+  .project-thumb .gloss{ position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(60% 60% at 80% 10%, rgba(255,255,255,.14), transparent 55%),
+                linear-gradient(180deg, rgba(255,255,255,.05), transparent 45%, transparent 55%, rgba(255,255,255,.04));
+    mix-blend-mode: screen; }
+
+  @media (max-width: 880px){ .hero-photo-grid{ min-height: 300px; } }
 </style>
