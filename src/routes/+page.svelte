@@ -66,6 +66,7 @@
     x: number;
     y: number;
     size: number;
+    aspectRatio: number;
     vx: number;
     vy: number;
     index: number;
@@ -209,37 +210,55 @@
     const list = images;
     const tempStates: PhotoState[] = [];
 
-    for (let i = 0; i < list.length; i++) {
-      const size = rand(minSize, maxSize);
-      const r = size / 2;
-      let x: number = rand(r + 1, 100 - (r + 1));
-      let y: number = rand(r + 1, 100 - (r + 1));
-      let tries = 0;
+    // Load images to get aspect ratios
+    const imagePromises = list.map((src) => {
+      return new Promise<number>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img.width / img.height);
+        img.onerror = () => resolve(1); // fallback to square
+        img.src = src;
+      });
+    });
 
-      do {
-        x = rand(r + 1, 100 - (r + 1));
-        y = rand(r + 1, 100 - (r + 1));
-        tries++;
-        if (tries > 800) break;
-      } while (
-        !isOutsideInnerBox(x, y, r) ||
-        tempStates.some((p) => {
-          const dx = p.x - x;
-          const dy = p.y - y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          return dist < p.size / 2 + r + minDistance * 0.5;
-        })
-      );
+    Promise.all(imagePromises).then((aspectRatios) => {
+      for (let i = 0; i < list.length; i++) {
+        const aspectRatio = aspectRatios[i];
+        const size = rand(minSize, maxSize);
+        // Calculate effective radius based on aspect ratio
+        const width = size;
+        const height = size / aspectRatio;
+        const r = Math.max(width, height) / 2;
+        
+        let x: number = rand(r + 1, 100 - (r + 1));
+        let y: number = rand(r + 1, 100 - (r + 1));
+        let tries = 0;
 
-      const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
-      const angle = rand(0, Math.PI * 2);
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
+        do {
+          x = rand(r + 1, 100 - (r + 1));
+          y = rand(r + 1, 100 - (r + 1));
+          tries++;
+          if (tries > 800) break;
+        } while (
+          !isOutsideInnerBox(x, y, r) ||
+          tempStates.some((p) => {
+            const dx = p.x - x;
+            const dy = p.y - y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const pR = Math.max(p.size, p.size / p.aspectRatio) / 2;
+            return dist < pR + r + minDistance * 0.5;
+          })
+        );
 
-      tempStates.push({ x, y, size, vx, vy, index: i, showCaption: false, scale: 1 });
-    }
+        const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
+        const angle = rand(0, Math.PI * 2);
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
 
-    photoStates = tempStates;
+        tempStates.push({ x, y, size, aspectRatio, vx, vy, index: i, showCaption: false, scale: 1 });
+      }
+
+      photoStates = tempStates;
+    });
   }
 
   function clamp(val: number, lo: number, hi: number) {
@@ -251,26 +270,29 @@
     if (isFormingPattern) return;
 
     const inner = getInner();
-    const rEff = (p.size / 2) * p.scale;
+    const width = p.size * p.scale;
+    const height = (p.size / p.aspectRatio) * p.scale;
+    const rEffW = width / 2;
+    const rEffH = height / 2;
     const left = inner.x;
     const right = inner.x + inner.width;
     const top = inner.y;
     const bottom = inner.y + inner.height;
 
-    const insideX = p.x + rEff > left && p.x - rEff < right;
-    const insideY = p.y + rEff > top && p.y - rEff < bottom;
+    const insideX = p.x + rEffW > left && p.x - rEffW < right;
+    const insideY = p.y + rEffH > top && p.y - rEffH < bottom;
 
     if (insideX && insideY) {
-      const penLeft = Math.abs((p.x + rEff) - left);
-      const penRight = Math.abs(right - (p.x - rEff));
-      const penTop = Math.abs((p.y + rEff) - top);
-      const penBottom = Math.abs(bottom - (p.y - rEff));
+      const penLeft = Math.abs((p.x + rEffW) - left);
+      const penRight = Math.abs(right - (p.x - rEffW));
+      const penTop = Math.abs((p.y + rEffH) - top);
+      const penBottom = Math.abs(bottom - (p.y - rEffH));
       const minPen = Math.min(penLeft, penRight, penTop, penBottom);
 
-      if (minPen === penLeft)      { p.x = left - rEff;  p.vx = -Math.abs(p.vx); }
-      else if (minPen === penRight){ p.x = right + rEff; p.vx =  Math.abs(p.vx); }
-      else if (minPen === penTop)  { p.y = top - rEff;   p.vy = -Math.abs(p.vy); }
-      else                         { p.y = bottom + rEff;p.vy =  Math.abs(p.vy); }
+      if (minPen === penLeft)      { p.x = left - rEffW;  p.vx = -Math.abs(p.vx); }
+      else if (minPen === penRight){ p.x = right + rEffW; p.vx =  Math.abs(p.vx); }
+      else if (minPen === penTop)  { p.y = top - rEffH;   p.vy = -Math.abs(p.vy); }
+      else                         { p.y = bottom + rEffH;p.vy =  Math.abs(p.vy); }
     }
   }
 
@@ -279,8 +301,15 @@
     for (let i = 0; i < states.length; i++) {
       for (let j = i + 1; j < states.length; j++) {
         const a = states[i], b = states[j];
-        const ra = (a.size / 2) * a.scale;
-        const rb = (b.size / 2) * b.scale;
+        const raW = (a.size / 2) * a.scale;
+        const raH = (a.size / a.aspectRatio / 2) * a.scale;
+        const rbW = (b.size / 2) * b.scale;
+        const rbH = (b.size / b.aspectRatio / 2) * b.scale;
+        
+        // Use average of width and height radii for collision detection
+        const ra = (raW + raH) / 2;
+        const rb = (rbW + rbH) / 2;
+        
         const dx = b.x - a.x, dy = b.y - a.y;
         const dist2 = dx*dx + dy*dy;
         const minDist = ra + rb;
@@ -371,13 +400,14 @@
         p.y += p.vy * dt;
       }
 
-      const rEff = (p.size / 2) * p.scale;
+      const rEffW = (p.size / 2) * p.scale;
+      const rEffH = (p.size / p.aspectRatio / 2) * p.scale;
 
       // Outer bounds (0..100 world)
-      if (p.x - rEff < 0)        { p.x = rEff;        p.vx =  Math.abs(p.vx); }
-      else if (p.x + rEff > 100) { p.x = 100 - rEff;  p.vx = -Math.abs(p.vx); }
-      if (p.y - rEff < 0)        { p.y = rEff;        p.vy =  Math.abs(p.vy); }
-      else if (p.y + rEff > 100) { p.y = 100 - rEff;  p.vy = -Math.abs(p.vy); }
+      if (p.x - rEffW < 0)        { p.x = rEffW;        p.vx =  Math.abs(p.vx); }
+      else if (p.x + rEffW > 100) { p.x = 100 - rEffW;  p.vx = -Math.abs(p.vx); }
+      if (p.y - rEffH < 0)        { p.y = rEffH;        p.vy =  Math.abs(p.vy); }
+      else if (p.y + rEffH > 100) { p.y = 100 - rEffH;  p.vy = -Math.abs(p.vy); }
 
       // Only bounce off inner box during free motion (not patterns)
       bounceOffInnerBox(p);
@@ -391,9 +421,10 @@
     for (const p of photoStates) {
       p.vx *= CONFIG.motion.damping;
       p.vy *= CONFIG.motion.damping;
-      const rEff = (p.size / 2) * p.scale;
-      p.x = clamp(p.x, rEff, 100 - rEff);
-      p.y = clamp(p.y, rEff, 100 - rEff);
+      const rEffW = (p.size / 2) * p.scale;
+      const rEffH = (p.size / p.aspectRatio / 2) * p.scale;
+      p.x = clamp(p.x, rEffW, 100 - rEffW);
+      p.y = clamp(p.y, rEffH, 100 - rEffH);
     }
 
     for (let i = 0; i < photoStates.length; i++) {
@@ -403,7 +434,7 @@
       el.style.left = p.x + '%';
       el.style.top = p.y + '%';
       el.style.width = p.size + '%';
-      el.style.height = p.size + '%';
+      el.style.aspectRatio = String(p.aspectRatio);
       el.style.setProperty('--scale', String(p.scale));
     }
   }
@@ -565,7 +596,7 @@
             <figure
               bind:this={nodes[i]}
               class="thumb"
-              style="left:{state.x}%; top:{state.y}%; width:{state.size}%; height:{state.size}%;"
+              style="left:{state.x}%; top:{state.y}%; width:{state.size}%; aspect-ratio:{state.aspectRatio};"
               on:mouseenter={() => handleMouseEnter(i)}
               on:mouseleave={() => handleMouseLeave(i)}
               on:keydown={(e) => {

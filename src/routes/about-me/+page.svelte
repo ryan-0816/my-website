@@ -20,17 +20,24 @@
   `;
 
   const about2 = `
-  About me as well!
-  
-  `
+  Static Website Deployment with Terraform \n
+  • Provisioned modular, version-controlled static web hosting using infrastructure as code
+  • Deployed optimized assets for a consistent, reliable user experience and repeatable builds
+  Network Intrusion Monitor Script \n
+  • Python/Scapy script to detect port scans, brute force attempts, and suspicious DNS activity
+  Website Development \n
+  • Developed Svelte-based ewbpages for student organizations with Google service integration
+  Northland Hackathon \n
+  • Developed a course recommendation webpage pased on student academic history
+  `;
 
   const about3 = `
   number 3
-  `
+  `;
 
   const about4 = `
   4
-  `
+  `;
 
   type Card = {
     heading: string;
@@ -61,7 +68,7 @@
       case "linkedin":
         return "M4.98 3.5a2.5 2.5 0 1 1-.02 5 2.5 2.5 0 0 1 .02-5zM3 8.98h3.96v12.5H3V8.98zm6.74 0H14v1.7h.05c.58-1.10 2-2.25 4.12-2.25 4.41 0 5.23 2.90 5.23 6.67v6.38H19.4v-5.66c0-1.35-.02-3.09-1.88-3.09-1.88 0-2.17 1.47-2.17 2.99v5.76H11.7V8.98z";
       case "mail":
-        return "M2 6l10 7 10-7v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm20-2H2l10 7 10-7z";
+        return "M2 6l10 7 10-7v10a2 2 0  0 1-2 2H4a2 2 0 0 1-2-2V6zm20-2H2l10 7 10-7z";
       case "file":
         return "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z";
       default:
@@ -72,6 +79,7 @@
 
 <div class="page">
   <div class="bg"></div>
+  <div class="edge-shade" aria-hidden="true"></div>
   <div class="side-lines" aria-hidden="true"></div>
 
   <main
@@ -127,31 +135,57 @@
     --card-border:#ffffff1f;
   }
 
-  /* Make page scrollable */
-  :global(html), :global(body) {
+  /* Ensure entire page scrolls (even if another route set overflow hidden) */
+  :global(html),
+  :global(body){
     margin: 0;
     padding: 0;
     min-height: 100%;
-    height: auto;
     background: var(--bg-0);
     color: var(--ink);
     font-family: Inter, SF Pro Text, Segoe UI, Roboto, system-ui, -apple-system, Arial, sans-serif;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
-  .page { position: relative; min-height: 100vh; }
+  /* Page grows with content; no fixed viewport clamp */
+  .page {
+    position: relative;
+    min-height: 100vh;
+  }
 
+  /* Fixed atmospheric background */
   .bg{
-    position:absolute; inset:0; z-index:0;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
     background:
       radial-gradient(120vmax 80vmax at 70% 30%, rgba(194,31,31,0.12), transparent 60%),
       radial-gradient(90vmax 90vmax at 20% 80%, rgba(125,14,14,0.12), transparent 60%),
       linear-gradient(180deg, var(--bg-2), var(--bg-1) 40%, var(--bg-0));
   }
 
+  /* NEW: dark/black gutters on the sides, preserved while scrolling */
+  .edge-shade{
+    position: fixed;
+    inset: 0;
+    z-index: 1;          /* above .bg, below content */
+    pointer-events: none;
+    /* Side falloff: keep center clear, darken edges */
+    background:
+      linear-gradient(90deg,
+        rgba(0,0,0,.65) 0%,
+        rgba(0,0,0,.45) 6%,
+        rgba(0,0,0,.20) 12%,
+        transparent 20%,
+        transparent 80%,
+        rgba(0,0,0,.20) 88%,
+        rgba(0,0,0,.45) 94%,
+        rgba(0,0,0,.65) 100%);
+  }
+
   .side-lines{
-    position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    position: fixed; inset: 0; pointer-events: none; z-index: 2;
     background:
       linear-gradient(90deg, transparent 0, transparent calc(50% - 1px), rgba(255,255,255,0.06) calc(50% - 1px), rgba(255,255,255,0.06) calc(50% + 1px), transparent calc(50% + 1px)),
       linear-gradient(0deg, rgba(255,255,255,0.04), transparent 30%, transparent 70%, rgba(255,255,255,0.04));
@@ -160,7 +194,7 @@
   }
 
   .wrap{
-    position: relative; z-index: 2;
+    position: relative; z-index: 3;  /* above fixed layers */
     width: min(var(--wrap-w), var(--wrap-max));
     margin: 0 auto;
     padding: 6vmin 2vmin;
@@ -181,20 +215,20 @@
     backdrop-filter: blur(12px);
   }
 
-  /* Hero layout: FIXED height from CSS var (editable). */
+  /* Hero layout: fixed height from CSS var (editable) so total content height = N * cardHeight + gaps */
   .hero{
     display: grid;
     grid-template-columns: 1.2fr 1fr;
     gap: 16px;
     align-items: start;
-    height: var(--card-h);            /* <-- use CSS var directly for height */
+    height: var(--card-h);
   }
 
   /* On narrow screens, let height auto so content can expand naturally. */
   @media (max-width: 880px){
     .hero{
       grid-template-columns: 1fr;
-      height: auto;                   /* mobile: don't force a fixed height */
+      height: auto;
     }
   }
 
@@ -262,7 +296,7 @@
     border-radius: 14px;
     overflow: hidden;
     margin: 0;
-    height: 100%;                     /* match .hero (card) height */
+    height: 100%;
     min-height: 180px;
     background: #2a2d34;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
@@ -271,7 +305,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;                 /* fit inside fixed box */
+    object-fit: cover;
     filter: saturate(.97) contrast(1.04);
   }
   .hero-photo .gloss{
