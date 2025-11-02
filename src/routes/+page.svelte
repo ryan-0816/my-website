@@ -9,16 +9,17 @@
       width: 50 // % of stage width; height will be width * 0.75 to keep 4:3 ratio
     },
     spawn: {
-      padding: 3,
-      minSize: 6,
-      maxSize: 10,
-      minDistance: 16
+      padding: 5,
+      minSize: 7,
+      maxSize: 8,
+      minDistance: 20
     },
     motion: {
-      minSpeed: 2,
-      maxSpeed: 6,
-      damping: 0.9995,
-      dtClamp: 1 / 30
+      minSpeed: 0.8,
+      maxSpeed: 2.5,
+      damping: 0.998,
+      dtClamp: 1 / 30,
+      restitution: 0.6 // bounciness factor
     },
     patterns: {
       idleTimeout: 30,       // seconds before patterns start
@@ -51,7 +52,8 @@
     "Hackathon event","Code review","System architecture","Security analysis",
     "Project demonstration","Technical training","Team building","Innovation showcase",
     "Security audit","Development work","Academic project","Professional event",
-    "Technical discussion","Security research","Collaborative work","Achievement celebration"
+    "Technical discussion","Security research","Collaborative work","Achievement celebration",
+    "Final project", "Collaboration", "Innovation"
   ];
 
   const links = [
@@ -74,29 +76,29 @@
     scale: number;
     targetX?: number;
     targetY?: number;
+    width: number;
+    height: number;
   };
 
   let photoStates: PhotoState[] = [];
   let nodes: HTMLElement[] = [];
+  let captionNodes: HTMLElement[] = [];
   let lastActivityTime = Date.now();
   let isFormingPattern = false;
   let currentPatternIndex = 0;
   let patternStartTime = 0;
   let isBrowser = false;
 
-  // ===== PATTERNS (logical, recognizable shapes; positioned to avoid inner box) =====
+  // ===== PATTERNS =====
   const patterns = [
     {
       name: "HI",
       positions: [
-        // H (left of center)
         { x: 16, y: 30 }, { x: 16, y: 40 }, { x: 16, y: 50 }, { x: 16, y: 60 }, { x: 16, y: 70 },
         { x: 26, y: 30 }, { x: 26, y: 40 }, { x: 26, y: 50 }, { x: 26, y: 60 }, { x: 26, y: 70 },
         { x: 21, y: 50 },
-        // I (right of center)
         { x: 74, y: 30 }, { x: 74, y: 40 }, { x: 74, y: 50 }, { x: 74, y: 60 }, { x: 74, y: 70 },
         { x: 70, y: 30 }, { x: 78, y: 30 }, { x: 70, y: 70 }, { x: 78, y: 70 },
-        // filler/background
         { x: 50, y: 20 }, { x: 50, y: 80 }, { x: 10, y: 20 }, { x: 90, y: 80 }, { x: 10, y: 80 },
         { x: 90, y: 20 }, { x: 50, y: 50 }
       ]
@@ -104,12 +106,10 @@
     {
       name: "Circle",
       positions: [
-        // outer ring around the inner box
         { x: 50, y: 15 }, { x: 62, y: 20 }, { x: 72, y: 30 }, { x: 80, y: 43 }, { x: 83, y: 57 },
         { x: 80, y: 70 }, { x: 71, y: 82 }, { x: 60, y: 89 }, { x: 50, y: 90 }, { x: 40, y: 88 },
         { x: 29, y: 80 }, { x: 20, y: 68 }, { x: 16, y: 55 }, { x: 18, y: 41 }, { x: 26, y: 29 },
         { x: 38, y: 20 }, { x: 48, y: 16 },
-        // inner ring (still outside inner box)
         { x: 50, y: 28 }, { x: 58, y: 33 }, { x: 65, y: 42 }, { x: 67, y: 54 }, { x: 63, y: 65 },
         { x: 55, y: 72 }, { x: 45, y: 73 }, { x: 36, y: 67 }, { x: 32, y: 56 }, { x: 34, y: 44 }
       ].slice(0, 27)
@@ -118,10 +118,7 @@
       name: "Spiral",
       positions: (() => {
         const spiral = [];
-        const centerX = 50, centerY = 50;
-        const turns = 3, points = 27;
-        // grow a spiral that skirts the inner box (radius offset starts outside it)
-        const minR = 22; // roughly half of inner width when CONFIG.inner.width ~50
+        const centerX = 50, centerY = 50, turns = 3, points = 27, minR = 22;
         for (let i = 0; i < points; i++) {
           const angle = (i / points) * Math.PI * 2 * turns;
           const radius = minR + (i / points) * 28;
@@ -133,7 +130,6 @@
     {
       name: "Frame",
       positions: (() => {
-        // a rectangular frame close to the edges—very readable
         const pts = [];
         const cols = 7, rows = 5;
         const startX = 6, endX = 94, startY = 8, endY = 92;
@@ -150,7 +146,7 @@
       name: "Heart",
       positions: (() => {
         const heart = [];
-        const centerX = 50, centerY = 52, size = 2.6; // tuned to sit nicely around inner box
+        const centerX = 50, centerY = 52, size = 2.6;
         for (let i = 0; i < 27; i++) {
           const t = (i / 26) * Math.PI * 2;
           const x = centerX + size * 16 * Math.pow(Math.sin(t), 3);
@@ -163,22 +159,17 @@
     {
       name: "Arrow",
       positions: [
-        // shaft across the screen, clear of inner box
         { x: 12, y: 24 }, { x: 22, y: 24 }, { x: 32, y: 24 }, { x: 42, y: 24 }, { x: 52, y: 24 },
         { x: 62, y: 24 }, { x: 72, y: 24 }, { x: 82, y: 24 },
-        // head
         { x: 82, y: 24 }, { x: 78, y: 18 }, { x: 78, y: 30 },
         { x: 86, y: 16 }, { x: 86, y: 22 }, { x: 86, y: 26 }, { x: 86, y: 32 }, { x: 88, y: 24 },
-        // tail fletching
         { x: 8, y: 20 }, { x: 8, y: 24 }, { x: 8, y: 28 },
         { x: 4, y: 18 }, { x: 4, y: 22 }, { x: 4, y: 26 }, { x: 4, y: 30 },
         { x: 0 + 2, y: 20 }, { x: 2, y: 24 }, { x: 2, y: 28 }
       ]
     }
   ];
-  // ===================================================
 
-  // Inner box derived values (4:3 ratio, centered)
   function getInner() {
     const width = clamp(CONFIG.inner.width, 10, 90);
     const height = width * 0.75;
@@ -187,22 +178,42 @@
     return { x, y, width, height };
   }
 
-  // Helpers
   const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
-  function isOutsideInnerBox(x: number, y: number, radius: number): boolean {
+  function getAABB(p: PhotoState) {
+    const scaledWidth = p.width * p.scale;
+    const scaledHeight = p.height * p.scale;
+    return {
+      left: p.x - scaledWidth / 2,
+      right: p.x + scaledWidth / 2,
+      top: p.y - scaledHeight / 2,
+      bottom: p.y + scaledHeight / 2,
+      width: scaledWidth,
+      height: scaledHeight
+    };
+  }
+
+  function checkAABBOverlap(aabb1: ReturnType<typeof getAABB>, aabb2: ReturnType<typeof getAABB>): boolean {
+    return aabb1.left < aabb2.right && 
+           aabb1.right > aabb2.left && 
+           aabb1.top < aabb2.bottom && 
+           aabb1.bottom > aabb2.top;
+  }
+
+  function isOutsideInnerBox(x: number, y: number, halfWidth: number, halfHeight: number): boolean {
     const pad = CONFIG.spawn.padding;
     const inner = getInner();
     const left = inner.x - pad;
     const right = inner.x + inner.width + pad;
     const top = inner.y - pad;
     const bottom = inner.y + inner.height + pad;
-    return !(
-      x + radius > left &&
-      x - radius < right &&
-      y + radius > top &&
-      y - radius < bottom
-    );
+    
+    const photoLeft = x - halfWidth;
+    const photoRight = x + halfWidth;
+    const photoTop = y - halfHeight;
+    const photoBottom = y + halfHeight;
+    
+    return photoRight < left || photoLeft > right || photoBottom < top || photoTop > bottom;
   }
 
   function initializePhotos() {
@@ -210,12 +221,11 @@
     const list = images;
     const tempStates: PhotoState[] = [];
 
-    // Load images to get aspect ratios
     const imagePromises = list.map((src) => {
       return new Promise<number>((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img.width / img.height);
-        img.onerror = () => resolve(1); // fallback to square
+        img.onerror = () => resolve(1);
         img.src = src;
       });
     });
@@ -224,37 +234,56 @@
       for (let i = 0; i < list.length; i++) {
         const aspectRatio = aspectRatios[i];
         const size = rand(minSize, maxSize);
-        // Calculate effective radius based on aspect ratio
         const width = size;
         const height = size / aspectRatio;
-        const r = Math.max(width, height) / 2;
+        const halfW = width / 2;
+        const halfH = height / 2;
         
-        let x: number = rand(r + 1, 100 - (r + 1));
-        let y: number = rand(r + 1, 100 - (r + 1));
+        let x: number, y: number;
         let tries = 0;
+        let validPosition = false;
 
         do {
-          x = rand(r + 1, 100 - (r + 1));
-          y = rand(r + 1, 100 - (r + 1));
+          x = rand(halfW + 2, 100 - halfW - 2);
+          y = rand(halfH + 2, 100 - halfH - 2);
           tries++;
-          if (tries > 800) break;
-        } while (
-          !isOutsideInnerBox(x, y, r) ||
-          tempStates.some((p) => {
-            const dx = p.x - x;
-            const dy = p.y - y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const pR = Math.max(p.size, p.size / p.aspectRatio) / 2;
-            return dist < pR + r + minDistance * 0.5;
-          })
-        );
+          
+          // Check if outside inner box
+          if (!isOutsideInnerBox(x, y, halfW, halfH)) continue;
+          
+          // Check distance to all existing photos using AABB
+          validPosition = true;
+          for (const p of tempStates) {
+            const dx = Math.abs(p.x - x);
+            const dy = Math.abs(p.y - y);
+            const minDistX = (p.width + width) / 2 + minDistance;
+            const minDistY = (p.height + height) / 2 + minDistance;
+            
+            if (dx < minDistX && dy < minDistY) {
+              validPosition = false;
+              break;
+            }
+          }
+          
+          if (tries > 1000) break;
+        } while (!validPosition);
 
         const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
         const angle = rand(0, Math.PI * 2);
         const vx = Math.cos(angle) * speed;
         const vy = Math.sin(angle) * speed;
 
-        tempStates.push({ x, y, size, aspectRatio, vx, vy, index: i, showCaption: false, scale: 1 });
+        tempStates.push({ 
+          x, y, 
+          size, 
+          aspectRatio, 
+          vx, vy, 
+          index: i, 
+          showCaption: false, 
+          scale: 1,
+          width,
+          height
+        });
       }
 
       photoStates = tempStates;
@@ -265,72 +294,92 @@
     return Math.max(lo, Math.min(hi, val));
   }
 
-  // Do not bounce off inner box while forming patterns (so shapes aren't interrupted)
+  function resolveAABBCollisions(states: PhotoState[]) {
+    const restitution = CONFIG.motion.restitution;
+    
+    for (let i = 0; i < states.length; i++) {
+      for (let j = i + 1; j < states.length; j++) {
+        const a = states[i], b = states[j];
+        
+        const aabbA = getAABB(a);
+        const aabbB = getAABB(b);
+        
+        if (!checkAABBOverlap(aabbA, aabbB)) continue;
+
+        // Calculate overlap
+        const overlapX = Math.min(aabbA.right - aabbB.left, aabbB.right - aabbA.left);
+        const overlapY = Math.min(aabbA.bottom - aabbB.top, aabbB.bottom - aabbA.top);
+
+        // Only resolve if there's actual overlap
+        if (overlapX <= 0 || overlapY <= 0) continue;
+
+        // Resolve along axis of least penetration
+        if (overlapX < overlapY) {
+          // Horizontal separation
+          const direction = a.x < b.x ? -1 : 1;
+          const separation = overlapX / 2 + 0.1; // Add small buffer
+          
+          a.x += direction * separation;
+          b.x -= direction * separation;
+          
+          // Elastic collision for horizontal velocities
+          const relVelX = a.vx - b.vx;
+          if ((direction < 0 && relVelX < 0) || (direction > 0 && relVelX > 0)) {
+            const impulse = relVelX * restitution;
+            a.vx -= impulse;
+            b.vx += impulse;
+          }
+        } else {
+          // Vertical separation
+          const direction = a.y < b.y ? -1 : 1;
+          const separation = overlapY / 2 + 0.1; // Add small buffer
+          
+          a.y += direction * separation;
+          b.y -= direction * separation;
+          
+          // Elastic collision for vertical velocities
+          const relVelY = a.vy - b.vy;
+          if ((direction < 0 && relVelY < 0) || (direction > 0 && relVelY > 0)) {
+            const impulse = relVelY * restitution;
+            a.vy -= impulse;
+            b.vy += impulse;
+          }
+        }
+      }
+    }
+  }
+
   function bounceOffInnerBox(p: PhotoState) {
     if (isFormingPattern) return;
 
     const inner = getInner();
-    const width = p.size * p.scale;
-    const height = (p.size / p.aspectRatio) * p.scale;
-    const rEffW = width / 2;
-    const rEffH = height / 2;
-    const left = inner.x;
-    const right = inner.x + inner.width;
-    const top = inner.y;
-    const bottom = inner.y + inner.height;
+    const aabb = getAABB(p);
+    const restitution = CONFIG.motion.restitution;
 
-    const insideX = p.x + rEffW > left && p.x - rEffW < right;
-    const insideY = p.y + rEffH > top && p.y - rEffH < bottom;
-
-    if (insideX && insideY) {
-      const penLeft = Math.abs((p.x + rEffW) - left);
-      const penRight = Math.abs(right - (p.x - rEffW));
-      const penTop = Math.abs((p.y + rEffH) - top);
-      const penBottom = Math.abs(bottom - (p.y - rEffH));
-      const minPen = Math.min(penLeft, penRight, penTop, penBottom);
-
-      if (minPen === penLeft)      { p.x = left - rEffW;  p.vx = -Math.abs(p.vx); }
-      else if (minPen === penRight){ p.x = right + rEffW; p.vx =  Math.abs(p.vx); }
-      else if (minPen === penTop)  { p.y = top - rEffH;   p.vy = -Math.abs(p.vy); }
-      else                         { p.y = bottom + rEffH;p.vy =  Math.abs(p.vy); }
-    }
-  }
-
-  // Collision solver - now enabled during free motion
-  function resolveCollisions(states: PhotoState[]) {
-    for (let i = 0; i < states.length; i++) {
-      for (let j = i + 1; j < states.length; j++) {
-        const a = states[i], b = states[j];
-        const raW = (a.size / 2) * a.scale;
-        const raH = (a.size / a.aspectRatio / 2) * a.scale;
-        const rbW = (b.size / 2) * b.scale;
-        const rbH = (b.size / b.aspectRatio / 2) * b.scale;
-        
-        // Use average of width and height radii for collision detection
-        const ra = (raW + raH) / 2;
-        const rb = (rbW + rbH) / 2;
-        
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const dist2 = dx*dx + dy*dy;
-        const minDist = ra + rb;
-
-        if (dist2 > 0 && dist2 < minDist*minDist) {
-          const dist = Math.sqrt(dist2) || 1;
-          const nx = dx / dist, ny = dy / dist;
-
-          const overlap = (minDist - dist) / 2;
-          a.x -= nx * overlap; a.y -= ny * overlap;
-          b.x += nx * overlap; b.y += ny * overlap;
-
-          const vaDotN = a.vx * nx + a.vy * ny;
-          const vbDotN = b.vx * nx + b.vy * ny;
-
-          const vaNx = vaDotN * nx, vaNy = vaDotN * ny;
-          const vbNx = vbDotN * nx, vbNy = vbDotN * ny;
-
-          a.vx += (vbNx - vaNx); a.vy += (vbNy - vaNy);
-          b.vx += (vaNx - vbNx); b.vy += (vaNy - vbNy);
-        }
+    // Check each edge separately
+    if (aabb.right > inner.x && aabb.left < inner.x + inner.width &&
+        aabb.bottom > inner.y && aabb.top < inner.y + inner.height) {
+      
+      // Inside inner box - push out
+      const distLeft = aabb.left - inner.x;
+      const distRight = (inner.x + inner.width) - aabb.right;
+      const distTop = aabb.top - inner.y;
+      const distBottom = (inner.y + inner.height) - aabb.bottom;
+      
+      const minDist = Math.min(Math.abs(distLeft), Math.abs(distRight), Math.abs(distTop), Math.abs(distBottom));
+      
+      if (minDist === Math.abs(distLeft)) {
+        p.x = inner.x - aabb.width / 2 - 0.1;
+        if (p.vx > 0) p.vx = -p.vx * restitution;
+      } else if (minDist === Math.abs(distRight)) {
+        p.x = inner.x + inner.width + aabb.width / 2 + 0.1;
+        if (p.vx < 0) p.vx = -p.vx * restitution;
+      } else if (minDist === Math.abs(distTop)) {
+        p.y = inner.y - aabb.height / 2 - 0.1;
+        if (p.vy > 0) p.vy = -p.vy * restitution;
+      } else {
+        p.y = inner.y + inner.height + aabb.height / 2 + 0.1;
+        if (p.vy < 0) p.vy = -p.vy * restitution;
       }
     }
   }
@@ -345,9 +394,8 @@
   function applyPattern(pattern: typeof patterns[0]) {
     photoStates.forEach((p, i) => {
       const targetPos = pattern.positions[i % pattern.positions.length];
-      p.targetX = clamp(targetPos.x, p.size/2, 100 - p.size/2);
-      p.targetY = clamp(targetPos.y, p.size/2, 100 - p.size/2);
-      // keep some motion so they flow into place
+      p.targetX = clamp(targetPos.x, p.width/2, 100 - p.width/2);
+      p.targetY = clamp(targetPos.y, p.height/2, 100 - p.height/2);
       p.vx *= 0.3;
       p.vy *= 0.3;
     });
@@ -361,21 +409,18 @@
 
   function stepPhysics(dt: number) {
     const now = Date.now();
-    const inactiveTime = (now - lastActivityTime) / 1000; // seconds
+    const inactiveTime = (now - lastActivityTime) / 1000;
     
-    // Start pattern cycle after idle timeout
     if (!isFormingPattern && inactiveTime > CONFIG.patterns.idleTimeout) {
       startPatternCycle();
     }
 
-    // Cycle patterns over time while in pattern mode
     if (isFormingPattern && (now - patternStartTime) / 1000 > CONFIG.patterns.patternDuration) {
       nextPattern();
     }
 
     for (const p of photoStates) {
       if (isFormingPattern && p.targetX !== undefined && p.targetY !== undefined) {
-        // Move towards target (pattern formation)
         const dx = p.targetX - p.x;
         const dy = p.targetY - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -388,7 +433,6 @@
           p.x += p.vx * dt;
           p.y += p.vy * dt;
         } else {
-          // Snap when close
           p.x = p.targetX;
           p.y = p.targetY;
           p.vx = 0;
@@ -400,42 +444,75 @@
         p.y += p.vy * dt;
       }
 
-      const rEffW = (p.size / 2) * p.scale;
-      const rEffH = (p.size / p.aspectRatio / 2) * p.scale;
+      const aabb = getAABB(p);
 
-      // Outer bounds (0..100 world)
-      if (p.x - rEffW < 0)        { p.x = rEffW;        p.vx =  Math.abs(p.vx); }
-      else if (p.x + rEffW > 100) { p.x = 100 - rEffW;  p.vx = -Math.abs(p.vx); }
-      if (p.y - rEffH < 0)        { p.y = rEffH;        p.vy =  Math.abs(p.vy); }
-      else if (p.y + rEffH > 100) { p.y = 100 - rEffH;  p.vy = -Math.abs(p.vy); }
+      // Outer bounds
+      if (aabb.left < 0) {
+        p.x = aabb.width / 2;
+        p.vx = Math.abs(p.vx) * CONFIG.motion.restitution;
+      } else if (aabb.right > 100) {
+        p.x = 100 - aabb.width / 2;
+        p.vx = -Math.abs(p.vx) * CONFIG.motion.restitution;
+      }
 
-      // Only bounce off inner box during free motion (not patterns)
+      if (aabb.top < 0) {
+        p.y = aabb.height / 2;
+        p.vy = Math.abs(p.vy) * CONFIG.motion.restitution;
+      } else if (aabb.bottom > 100) {
+        p.y = 100 - aabb.height / 2;
+        p.vy = -Math.abs(p.vy) * CONFIG.motion.restitution;
+      }
+
       bounceOffInnerBox(p);
     }
 
-    // Only resolve collisions during free motion AND when collisions are enabled
+    // Only resolve collisions during free motion
     if (!isFormingPattern && CONFIG.physics.collisions) {
-      resolveCollisions(photoStates);
+      resolveAABBCollisions(photoStates);
     }
 
+    // Apply damping
     for (const p of photoStates) {
       p.vx *= CONFIG.motion.damping;
       p.vy *= CONFIG.motion.damping;
-      const rEffW = (p.size / 2) * p.scale;
-      const rEffH = (p.size / p.aspectRatio / 2) * p.scale;
-      p.x = clamp(p.x, rEffW, 100 - rEffW);
-      p.y = clamp(p.y, rEffH, 100 - rEffH);
+      
+      const aabb = getAABB(p);
+      p.x = clamp(p.x, aabb.width / 2, 100 - aabb.width / 2);
+      p.y = clamp(p.y, aabb.height / 2, 100 - aabb.height / 2);
     }
 
+    // Update DOM
     for (let i = 0; i < photoStates.length; i++) {
       const p = photoStates[i];
       const el = nodes[i];
+      const captionEl = captionNodes[i];
+      
       if (!el) continue;
+      
       el.style.left = p.x + '%';
       el.style.top = p.y + '%';
       el.style.width = p.size + '%';
       el.style.aspectRatio = String(p.aspectRatio);
       el.style.setProperty('--scale', String(p.scale));
+
+      if (captionEl) {
+        if (p.showCaption) {
+          const scaledWidth = p.width * p.scale;
+          captionEl.style.display = 'block';
+          captionEl.style.left = p.x + '%';
+          captionEl.style.top = (p.y + (p.height * p.scale) / 2) + '%';
+          captionEl.style.width = scaledWidth + '%';
+          captionEl.style.transform = 'translate(-50%, 0.5rem)';
+          captionEl.style.opacity = '1';
+        } else {
+          captionEl.style.opacity = '0';
+          setTimeout(() => {
+            if (captionEl && !photoStates[i]?.showCaption) {
+              captionEl.style.display = 'none';
+            }
+          }, 150);
+        }
+      }
     }
   }
 
@@ -444,12 +521,10 @@
     photoStates[i].scale = CONFIG.hover.scale;
     lastActivityTime = Date.now();
     if (isFormingPattern) {
-      // Break out of pattern mode on interaction
       isFormingPattern = false;
       photoStates.forEach(p => { 
         p.targetX = undefined; 
-        p.targetY = undefined; 
-        // Give them some random motion when breaking out
+        p.targetY = undefined;
         const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
         const angle = rand(0, Math.PI * 2);
         p.vx = Math.cos(angle) * speed;
@@ -469,8 +544,7 @@
       isFormingPattern = false;
       photoStates.forEach(p => { 
         p.targetX = undefined; 
-        p.targetY = undefined; 
-        // Re-enable natural motion
+        p.targetY = undefined;
         const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
         const angle = rand(0, Math.PI * 2);
         p.vx = Math.cos(angle) * speed;
@@ -542,9 +616,7 @@
      tabindex="0">
   <div class="bg"></div>
 
-  <!-- Full screen stage -->
   <div class="stage" class:patterning={isFormingPattern}>
-    <!-- Inner box outline -->
     <svg class="constellation" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       {#key CONFIG.inner.width}
         {#await Promise.resolve(getInner()) then inner}
@@ -560,7 +632,6 @@
       {/key}
     </svg>
 
-    <!-- Center card -->
     {#key CONFIG.inner.width}
       {#await Promise.resolve(getInner()) then inner}
         <div
@@ -610,10 +681,15 @@
             >
               <img src={images[i]} alt={`${(captions[i] ?? "Gallery image")} - gallery image ${i + 1}`} loading="lazy" decoding="async" />
               <div class="gloss"></div>
-              {#if state.showCaption}
-                <figcaption class="caption">{captions[i] ?? `Photo ${i + 1}`}</figcaption>
-              {/if}
             </figure>
+            
+            <div
+              bind:this={captionNodes[i]}
+              class="caption-box"
+              style="display: none; opacity: 0;"
+            >
+              {captions[i] ?? `Photo ${i + 1}`}
+            </div>
           </div>
         {/each}
       </div>
@@ -666,7 +742,6 @@
   }
   @keyframes grain{ to { transform: translate3d(-8%, -8%, 0); } }
 
-  /* Full screen stage */
   .stage{
     position: absolute;
     inset: 0;
@@ -689,7 +764,6 @@
     transition: opacity 240ms ease;
     opacity: 1;
   }
-  /* Much more transparent during cycles */
   .stage.patterning .inner-box {
     opacity: 0.18;
   }
@@ -703,11 +777,11 @@
     box-shadow: 0 0 40px rgba(194,31,31,0.15),
                 inset 0 1px 0 rgba(255,255,255,0.08),
                 inset 0 0 20px rgba(194,31,31,0.05);
-    transition: background 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+    transition: background 240ms ease, border-color 240ms ease, box-shadow 240ms ease, backdrop-filter 240ms ease;
   }
-  /* Fade the card way down during pattern cycles for legibility */
   .center-box.patterning{
     background: rgba(34,36,42,0.1);
+    backdrop-filter: blur(4px);
     border-color: rgba(194,31,31,0.20);
     box-shadow: 0 0 20px rgba(194,31,31,0.08),
                 inset 0 1px 0 rgba(255,255,255,0.04),
@@ -763,25 +837,42 @@
     mix-blend-mode: screen;
   }
 
-  .caption{
-    position:absolute; left:50%; bottom:-0.1rem; transform: translate(-50%, 100%);
-    background: rgba(34,36,42,0.95); backdrop-filter: blur(8px);
-    color: var(--ink); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: clamp(.6rem, 1.4vmin, .8rem);
-    white-space: nowrap; z-index: 30; border: 1px solid var(--box-glow);
-    box-shadow: 0 4px 16px rgba(0,0,0,.4); pointer-events: none; animation: fadeIn 150ms ease-out;
+  .caption-box{
+    position: absolute;
+    z-index: 30;
+    background: rgba(34,36,42,0.95);
+    backdrop-filter: blur(8px);
+    color: var(--ink);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: clamp(0.6rem, 1.4vmin, 0.8rem);
+    white-space: nowrap;
+    text-align: center;
+    border: 1px solid var(--box-glow);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    pointer-events: none;
+    transition: opacity 150ms ease-out;
+    transform-origin: top center;
+    max-width: none;
+    box-sizing: border-box;
   }
-  @keyframes fadeIn { from { opacity:0; transform: translate(-50%, calc(100% + 8px)); } to { opacity:1; transform: translate(-50%, 100%); } }
 
-  /* Mobile tweaks */
   @media (max-width: 768px) {
     .center-box { border-radius: 12px; }
     .links{ gap: .5rem; }
     .pill{ padding: .4rem .8rem; }
+    .caption-box {
+      font-size: 0.55rem;
+      padding: 0.4rem 0.6rem;
+    }
   }
   @media (max-width: 480px) {
     .name{ font-size: clamp(1.2rem, 5vmin, 3rem); }
     .tag{ margin-bottom: 1rem; }
     .links{ flex-direction: column; align-items: center; }
-    .caption{ font-size: .6rem; padding: .3rem .6rem; }
+    .caption-box {
+      font-size: 0.5rem;
+      padding: 0.3rem 0.5rem;
+    }
   }
 </style>
