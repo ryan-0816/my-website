@@ -2,20 +2,12 @@
   // ===== ONE PLACE TO EDIT =====
   const CONFIG = {
     hover: { scale: 1.6, captionDelay: 0 },
-    inner: { width: 50 }, // % of stage width; height = width * 0.75
-    spawn: { padding: 5, minSize: 7, maxSize: 8, minDistance: 20 },
-    motion: {
-      minSpeed: 0.8,
-      maxSpeed: 2.5,
-      damping: 0.9985,
-      dtClamp: 1 / 60,
-      restitution: 0.6
-    },
-    patterns: { idleTimeout: 3600, patternDuration: 30, transitionSpeed: 0.02 },
-    physics: { collisions: true, hitsForCooldown: 5, cooldownSeconds: 5, hitDebounceMs: 180 },
-    bounds: { taskbarPx: 48 }
+    inner: { width: 50 }, // height auto-calculated as 4:3 ratio
+    spawn: { padding: 3, minDistance: 16, minSize: 6, maxSize: 10 },
+    motion: { minSpeed: 2, maxSpeed: 6, damping: 0.9995, dtClamp: 1/30 },
+    patterns: { idleTimeout: 30, patternDuration: 30, transitionSpeed: 0.02 },
+    physics: { collisions: true }
   };
-  // =============================
 
   export let name = "RYAN TAGEN";
   const tagline = "Cybersecurity BS/MS at Rochester Institute of Technology";
@@ -31,13 +23,13 @@
   ];
 
   const captions: string[] = [
-    "All hail the mighty Capybara","Capybara general","Feeding a little guy","Top of Ampersand Mountain",
-    "Park Ranger duties","4th of July","Betrayal?","First time racing!",
-    "Luna, Aussie shepherd mix","ATVing in Taiwan","3","Gokart racing!",
-    "USCGC Eagle","I love sailing","Sea Scouts","Luna my beloved",
-    "smol dog","pumpkin Luna!","Mt. Snow with dad","Luna and Molly (foster)",
-    "Cuttyhunk Island","Senior picnic","baby Luna","Rock climbing at Acadia",
-    "Scuba cert", "Ceramics class", "Night market"
+    "Cybersecurity project","Campus life at RIT","Technical workshop","Team collaboration",
+    "Security conference","Programming session","Network security lab","Research presentation",
+    "Hackathon event","Code review","System architecture","Security analysis",
+    "Project demonstration","Technical training","Team building","Innovation showcase",
+    "Security audit","Development work","Academic project","Professional event",
+    "Technical discussion","Security research","Collaborative work","Achievement celebration",
+    "Conference presentation","Lab work","Team project"
   ];
 
   const links = [
@@ -46,75 +38,114 @@
     { href: "mailto:rst4035@rit.edu", label: "Email", icon: "mail" },
     { href: "/Ryan Tagen Resume.pdf", label: "Resume", icon: "file" }
   ];
+  // =============================
 
   type PhotoState = {
-    x: number; y: number; size: number; aspectRatio: number; vx: number; vy: number; index: number;
-    showCaption: boolean; scale: number; targetX?: number; targetY?: number; width: number; height: number;
-    cooldownUntil: number; uniqueHits: Set<number>; lastHitWith: Map<number, number>;
+    x: number; y: number; size: number; aspectRatio: number;
+    vx: number; vy: number; index: number;
+    showCaption: boolean; scale: number;
+    targetX?: number; targetY?: number;
+    width: number; height: number;
   };
 
   let photoStates: PhotoState[] = [];
   let nodes: HTMLElement[] = [];
-  let captionNodes: HTMLElement[] = [];
   let lastActivityTime = Date.now();
   let isFormingPattern = false;
   let currentPatternIndex = 0;
   let patternStartTime = 0;
   let isBrowser = false;
 
-  // Viewport height for taskbar-aware bottom bounce
-  let viewportH = 0;
-  function updateViewport() {
-    viewportH = Math.max(window.innerHeight || 0, 1);
-  }
-  function bottomLimitPercent(): number {
-    const tbPct = (CONFIG.bounds.taskbarPx / viewportH) * 100;
-    return Math.max(0, 100 - tbPct);
-  }
+  const patterns = [
+    {
+      name: "HI",
+      positions: [
+        { x: 16, y: 30 }, { x: 16, y: 40 }, { x: 16, y: 50 }, { x: 16, y: 60 }, { x: 16, y: 70 },
+        { x: 26, y: 30 }, { x: 26, y: 40 }, { x: 26, y: 50 }, { x: 26, y: 60 }, { x: 26, y: 70 }, { x: 21, y: 50 },
+        { x: 74, y: 30 }, { x: 74, y: 40 }, { x: 74, y: 50 }, { x: 74, y: 60 }, { x: 74, y: 70 },
+        { x: 70, y: 30 }, { x: 78, y: 30 }, { x: 70, y: 70 }, { x: 78, y: 70 },
+        { x: 50, y: 20 }, { x: 50, y: 80 }, { x: 10, y: 20 }, { x: 90, y: 80 }, { x: 10, y: 80 }, { x: 90, y: 20 }, { x: 50, y: 50 }
+      ]
+    },
+    {
+      name: "Circle",
+      positions: [
+        { x: 50, y: 15 }, { x: 62, y: 20 }, { x: 72, y: 30 }, { x: 80, y: 43 }, { x: 83, y: 57 },
+        { x: 80, y: 70 }, { x: 71, y: 82 }, { x: 60, y: 89 }, { x: 50, y: 90 }, { x: 40, y: 88 },
+        { x: 29, y: 80 }, { x: 20, y: 68 }, { x: 16, y: 55 }, { x: 18, y: 41 }, { x: 26, y: 29 },
+        { x: 38, y: 20 }, { x: 48, y: 16 }, { x: 50, y: 28 }, { x: 58, y: 33 }, { x: 65, y: 42 },
+        { x: 67, y: 54 }, { x: 63, y: 65 }, { x: 55, y: 72 }, { x: 45, y: 73 }, { x: 36, y: 67 }, { x: 32, y: 56 }, { x: 34, y: 44 }
+      ]
+    },
+    {
+      name: "Spiral",
+      positions: (() => {
+        const spiral = [], centerX = 50, centerY = 50, turns = 3, points = 27, minR = 22;
+        for (let i = 0; i < points; i++) {
+          const angle = (i / points) * Math.PI * 2 * turns, radius = minR + (i / points) * 28;
+          spiral.push({ x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius });
+        }
+        return spiral;
+      })()
+    },
+    {
+      name: "Frame",
+      positions: (() => {
+        const pts = [], cols = 7, rows = 5, startX = 6, endX = 94, startY = 8, endY = 92;
+        const stepX = (endX - startX) / (cols - 1), stepY = (endY - startY) / (rows - 1);
+        for (let c = 0; c < cols && pts.length < 27; c++) pts.push({ x: startX + c * stepX, y: startY });
+        for (let r = 1; r < rows - 1 && pts.length < 27; r++) pts.push({ x: endX, y: startY + r * stepY });
+        for (let c = cols - 1; c >= 0 && pts.length < 27; c--) pts.push({ x: startX + c * stepX, y: endY });
+        for (let r = rows - 2; r > 0 && pts.length < 27; r--) pts.push({ x: startX, y: startY + r * stepY });
+        return pts.slice(0, 27);
+      })()
+    },
+    {
+      name: "Heart",
+      positions: (() => {
+        const heart = [], centerX = 50, centerY = 52, size = 2.6;
+        for (let i = 0; i < 27; i++) {
+          const t = (i / 26) * Math.PI * 2;
+          const x = centerX + size * 16 * Math.pow(Math.sin(t), 3);
+          const y = centerY - size * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+          heart.push({ x, y });
+        }
+        return heart;
+      })()
+    },
+    {
+      name: "Arrow",
+      positions: [
+        { x: 12, y: 24 }, { x: 22, y: 24 }, { x: 32, y: 24 }, { x: 42, y: 24 }, { x: 52, y: 24 },
+        { x: 62, y: 24 }, { x: 72, y: 24 }, { x: 82, y: 24 }, { x: 82, y: 24 }, { x: 78, y: 18 },
+        { x: 78, y: 30 }, { x: 86, y: 16 }, { x: 86, y: 22 }, { x: 86, y: 26 }, { x: 86, y: 32 },
+        { x: 88, y: 24 }, { x: 8, y: 20 }, { x: 8, y: 24 }, { x: 8, y: 28 }, { x: 4, y: 18 },
+        { x: 4, y: 22 }, { x: 4, y: 26 }, { x: 4, y: 30 }, { x: 2, y: 20 }, { x: 2, y: 24 }, { x: 2, y: 28 }
+      ]
+    }
+  ];
 
-  const patterns = [{ name: "Idle", positions: images.map((_, i) => ({ x: 10 + (i % 9) * 9, y: 20 + ((i / 9) | 0) * 20 })) }];
-
-  function getInner() {
-    const width = clamp(CONFIG.inner.width, 10, 90);
+  const getInner = () => {
+    const width = Math.max(10, Math.min(90, CONFIG.inner.width));
     const height = width * 0.75;
-    const x = (100 - width) / 2;
-    const y = (100 - height) / 2;
-    return { x, y, width, height };
-  }
+    return { x: (100 - width) / 2, y: (100 - height) / 2, width, height };
+  };
 
   const rand = (min: number, max: number) => min + Math.random() * (max - min);
+  const clamp = (val: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, val));
 
-  function getAABB(p: PhotoState) {
-    const scaledWidth = p.width * p.scale;
-    const scaledHeight = p.height * p.scale;
-    return { left: p.x - scaledWidth / 2, right: p.x + scaledWidth / 2, top: p.y - scaledHeight / 2, bottom: p.y + scaledHeight / 2, width: scaledWidth, height: scaledHeight };
-  }
-  function checkAABBOverlap(a: ReturnType<typeof getAABB>, b: ReturnType<typeof getAABB>) {
-    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-  }
-
-  function isOutsideInnerBox(x: number, y: number, halfW: number, halfH: number) {
-    const pad = CONFIG.spawn.padding;
-    const inner = getInner();
-    const left = inner.x - pad;
-    const right = inner.x + inner.width + pad;
-    const top = inner.y - pad;
-    const bottom = inner.y + inner.height + pad;
-
-    const photoLeft = x - halfW;
-    const photoRight = x + halfW;
-    const photoTop = y - halfH;
-    const photoBottom = y + halfH;
-
-    return photoRight < left || photoLeft > right || photoBottom < top || photoTop > bottom;
+  function isOutsideInnerBox(x: number, y: number, w: number, h: number): boolean {
+    const pad = CONFIG.spawn.padding, inner = getInner();
+    const left = inner.x - pad, right = inner.x + inner.width + pad;
+    const top = inner.y - pad, bottom = inner.y + inner.height + pad;
+    return !(x + w/2 > left && x - w/2 < right && y + h/2 > top && y - h/2 < bottom);
   }
 
-  function initializePhotos() {
+  async function initializePhotos() {
     const { minSize, maxSize, minDistance } = CONFIG.spawn;
-    const list = images;
-    const tempStates: PhotoState[] = [];
-
-    const imagePromises = list.map((src) =>
+    
+    // Load all image aspect ratios
+    const imagePromises = images.map((src) =>
       new Promise<number>((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img.width / img.height || 1);
@@ -122,185 +153,158 @@
         img.src = src;
       })
     );
+    
+    const aspectRatios = await Promise.all(imagePromises);
+    const tempStates: PhotoState[] = [];
 
-    Promise.all(imagePromises).then((aspectRatios) => {
-      for (let i = 0; i < list.length; i++) {
-        const aspectRatio = aspectRatios[i] || 1;
-        const size = rand(minSize, maxSize);
-        const width = size;
-        const height = size / aspectRatio;
-        const halfW = width / 2;
-        const halfH = height / 2;
+    for (let i = 0; i < images.length; i++) {
+      const aspectRatio = aspectRatios[i] || 1;
+      const size = rand(minSize, maxSize);
+      const width = size;
+      const height = size / aspectRatio;
+      
+      let x = rand(width/2 + 1, 100 - (width/2 + 1));
+      let y = rand(height/2 + 1, 100 - (height/2 + 1));
+      let tries = 0;
 
-        let x: number, y: number;
-        let tries = 0;
-        let valid = false;
-
-        do {
-          x = rand(halfW + 2, 100 - halfW - 2);
-          y = rand(halfH + 2, bottomLimitPercent() - halfH - 2);
-          tries++;
-          if (!isOutsideInnerBox(x, y, halfW, halfH)) continue;
-
-          valid = true;
-          for (const p of tempStates) {
-            const dx = Math.abs(p.x - x);
-            const dy = Math.abs(p.y - y);
-            const minDistX = (p.width + width) / 2 + minDistance;
-            const minDistY = (p.height + height) / 2 + minDistance;
-            if (dx < minDistX && dy < minDistY) { valid = false; break; }
-          }
-          if (tries > 1500) break;
-        } while (!valid);
-
-        const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
-        const angle = rand(0, Math.PI * 2);
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-
-        tempStates.push({
-          x, y, size, aspectRatio, vx, vy, index: i, showCaption: false, scale: 1,
-          width, height, cooldownUntil: 0, uniqueHits: new Set<number>(), lastHitWith: new Map<number, number>()
-        });
-      }
-      photoStates = tempStates;
-    });
-  }
-
-  function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
-
-  function resolveAABBCollisions(states: PhotoState[], nowMs: number) {
-    const restitution = CONFIG.motion.restitution;
-    const { hitsForCooldown, cooldownSeconds, hitDebounceMs } = CONFIG.physics;
-
-    for (let i = 0; i < states.length; i++) for (let j = i + 1; j < states.length; j++) {
-      const a = states[i], b = states[j];
-      if (nowMs < a.cooldownUntil || nowMs < b.cooldownUntil) continue;
-
-      const A = getAABB(a), B = getAABB(b);
-      if (!checkAABBOverlap(A, B)) continue;
-
-      const lastAB = a.lastHitWith.get(b.index) ?? 0;
-      const lastBA = b.lastHitWith.get(a.index) ?? 0;
-      const freshHit = (nowMs - lastAB > hitDebounceMs) && (nowMs - lastBA > hitDebounceMs);
-
-      if (freshHit) {
-        if (!a.uniqueHits.has(b.index)) { a.uniqueHits.add(b.index); if (a.uniqueHits.size >= hitsForCooldown) { a.cooldownUntil = nowMs + cooldownSeconds * 1000; a.uniqueHits.clear(); } }
-        if (!b.uniqueHits.has(a.index)) { b.uniqueHits.add(a.index); if (b.uniqueHits.size >= hitsForCooldown) { b.cooldownUntil = nowMs + cooldownSeconds * 1000; b.uniqueHits.clear(); } }
-        a.lastHitWith.set(b.index, nowMs); b.lastHitWith.set(a.index, nowMs);
+      while (tries < 800) {
+        x = rand(width/2 + 1, 100 - (width/2 + 1));
+        y = rand(height/2 + 1, 100 - (height/2 + 1));
+        const valid = isOutsideInnerBox(x, y, width, height) && 
+          !tempStates.some(p => {
+            const dx = p.x - x, dy = p.y - y;
+            return Math.sqrt(dx*dx + dy*dy) < (p.width + width)/2 + minDistance * 0.5;
+          });
+        if (valid) break;
+        tries++;
       }
 
-      const overlapX = Math.min(A.right - B.left, B.right - A.left);
-      const overlapY = Math.min(A.bottom - B.top, B.bottom - A.top);
-      if (overlapX <= 0 || overlapY <= 0) continue;
-
-      if (overlapX < overlapY) {
-        const dir = a.x < b.x ? -1 : 1;
-        const sep = overlapX / 2 + 0.1;
-        a.x += dir * sep;
-        b.x -= dir * sep;
-        const relX = a.vx - b.vx;
-        if ((dir < 0 && relX < 0) || (dir > 0 && relX > 0)) { const imp = relX * restitution; a.vx -= imp; b.vx += imp; }
-      } else {
-        const dir = a.y < b.y ? -1 : 1;
-        const sep = overlapY / 2 + 0.1;
-        a.y += dir * sep;
-        b.y -= dir * sep;
-        const relY = a.vy - b.vy;
-        if ((dir < 0 && relY < 0) || (dir > 0 && relY > 0)) { const imp = relY * restitution; a.vy -= imp; b.vy += imp; }
-      }
+      const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
+      const angle = rand(0, Math.PI * 2);
+      tempStates.push({ 
+        x, y, size, aspectRatio,
+        vx: Math.cos(angle) * speed, 
+        vy: Math.sin(angle) * speed, 
+        index: i, showCaption: false, scale: 1,
+        width, height
+      });
     }
+    photoStates = tempStates;
   }
 
   function bounceOffInnerBox(p: PhotoState) {
     if (isFormingPattern) return;
     const inner = getInner();
-    const a = getAABB(p);
-    const r = CONFIG.motion.restitution;
+    const hw = (p.width / 2) * p.scale, hh = (p.height / 2) * p.scale;
+    const left = inner.x, right = inner.x + inner.width, top = inner.y, bottom = inner.y + inner.height;
+    const insideX = p.x + hw > left && p.x - hw < right;
+    const insideY = p.y + hh > top && p.y - hh < bottom;
 
-    if (a.right > inner.x && a.left < inner.x + inner.width && a.bottom > inner.y && a.top < inner.y + inner.height) {
-      const dL = a.left - inner.x, dR = (inner.x + inner.width) - a.right, dT = a.top - inner.y, dB = (inner.y + inner.height) - a.bottom;
-      const min = Math.min(Math.abs(dL), Math.abs(dR), Math.abs(dT), Math.abs(dB));
-
-      if (min === Math.abs(dL)) { p.x = inner.x - a.width / 2 - 0.1; if (p.vx > 0) p.vx = -p.vx * r; }
-      else if (min === Math.abs(dR)) { p.x = inner.x + inner.width + a.width / 2 + 0.1; if (p.vx < 0) p.vx = -p.vx * r; }
-      else if (min === Math.abs(dT)) { p.y = inner.y - a.height / 2 - 0.1; if (p.vy > 0) p.vy = -p.vy * r; }
-      else { p.y = inner.y + a.height / 2 + inner.height + 0.1; if (p.vy < 0) p.vy = -p.vy * r; }
+    if (insideX && insideY) {
+      const penLeft = Math.abs((p.x + hw) - left), penRight = Math.abs(right - (p.x - hw));
+      const penTop = Math.abs((p.y + hh) - top), penBottom = Math.abs(bottom - (p.y - hh));
+      const minPen = Math.min(penLeft, penRight, penTop, penBottom);
+      if (minPen === penLeft) { p.x = left - hw; p.vx = -Math.abs(p.vx); }
+      else if (minPen === penRight) { p.x = right + hw; p.vx = Math.abs(p.vx); }
+      else if (minPen === penTop) { p.y = top - hh; p.vy = -Math.abs(p.vy); }
+      else { p.y = bottom + hh; p.vy = Math.abs(p.vy); }
     }
   }
 
-  function startPatternCycle() { isFormingPattern = true; patternStartTime = Date.now(); currentPatternIndex = 0; applyPattern(patterns[currentPatternIndex]); }
+  function resolveCollisions(states: PhotoState[]) {
+    for (let i = 0; i < states.length; i++) {
+      for (let j = i + 1; j < states.length; j++) {
+        const a = states[i], b = states[j];
+        const aHW = (a.width / 2) * a.scale, aHH = (a.height / 2) * a.scale;
+        const bHW = (b.width / 2) * b.scale, bHH = (b.height / 2) * b.scale;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist2 = dx*dx + dy*dy;
+        const minDist = Math.max(aHW + bHW, aHH + bHH);
+
+        if (dist2 > 0 && dist2 < minDist*minDist) {
+          const dist = Math.sqrt(dist2) || 1;
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = (minDist - dist) / 2;
+          
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+
+          const vaDotN = a.vx * nx + a.vy * ny;
+          const vbDotN = b.vx * nx + b.vy * ny;
+          a.vx += (vbDotN - vaDotN) * nx; a.vy += (vbDotN - vaDotN) * ny;
+          b.vx += (vaDotN - vbDotN) * nx; b.vy += (vaDotN - vbDotN) * ny;
+        }
+      }
+    }
+  }
+
+  function startPatternCycle() {
+    isFormingPattern = true;
+    patternStartTime = Date.now();
+    currentPatternIndex = 0;
+    applyPattern(patterns[0]);
+  }
+
   function applyPattern(pattern: typeof patterns[0]) {
     photoStates.forEach((p, i) => {
-      const t = pattern.positions[i % pattern.positions.length];
-      p.targetX = clamp(t.x, p.width/2, 100 - p.width/2);
-      p.targetY = clamp(t.y, p.height/2, bottomLimitPercent() - p.height/2);
+      const targetPos = pattern.positions[i % pattern.positions.length];
+      p.targetX = clamp(targetPos.x, p.size/2, 100 - p.size/2);
+      p.targetY = clamp(targetPos.y, p.height/2, 100 - p.height/2);
       p.vx *= 0.3; p.vy *= 0.3;
     });
   }
-  function nextPattern() { currentPatternIndex = (currentPatternIndex + 1) % patterns.length; applyPattern(patterns[currentPatternIndex]); patternStartTime = Date.now(); }
+
+  function nextPattern() {
+    currentPatternIndex = (currentPatternIndex + 1) % patterns.length;
+    applyPattern(patterns[currentPatternIndex]);
+    patternStartTime = Date.now();
+  }
 
   function stepPhysics(dt: number) {
-    const now = Date.now();
-    const inactive = (now - lastActivityTime) / 1000;
-    if (!isFormingPattern && inactive > CONFIG.patterns.idleTimeout) startPatternCycle();
+    const now = Date.now(), inactiveTime = (now - lastActivityTime) / 1000;
+    
+    if (!isFormingPattern && inactiveTime > CONFIG.patterns.idleTimeout) startPatternCycle();
     if (isFormingPattern && (now - patternStartTime) / 1000 > CONFIG.patterns.patternDuration) nextPattern();
-
-    const bottomPct = bottomLimitPercent();
 
     for (const p of photoStates) {
       if (isFormingPattern && p.targetX !== undefined && p.targetY !== undefined) {
-        const dx = p.targetX - p.x, dy = p.targetY - p.y, dist = Math.hypot(dx, dy);
+        const dx = p.targetX - p.x, dy = p.targetY - p.y, dist = Math.sqrt(dx*dx + dy*dy);
         if (dist > 0.5) {
           p.vx += dx * CONFIG.patterns.transitionSpeed;
           p.vy += dy * CONFIG.patterns.transitionSpeed;
-          p.vx *= 0.88; p.vy *= 0.88;
+          p.vx *= 0.85; p.vy *= 0.85;
           p.x += p.vx * dt; p.y += p.vy * dt;
-        } else { p.x = p.targetX; p.y = p.targetY; p.vx = 0; p.vy = 0; }
-      } else { p.x += p.vx * dt; p.y += p.vy * dt; }
+        } else {
+          p.x = p.targetX; p.y = p.targetY; p.vx = 0; p.vy = 0;
+        }
+      } else {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+      }
 
-      const a = getAABB(p);
-      if (a.left < 0) { p.x = a.width / 2; p.vx = Math.abs(p.vx) * CONFIG.motion.restitution; }
-      else if (a.right > 100) { p.x = 100 - a.width / 2; p.vx = -Math.abs(p.vx) * CONFIG.motion.restitution; }
-
-      if (a.top < 0) { p.y = a.height / 2; p.vy = Math.abs(p.vy) * CONFIG.motion.restitution; }
-      const bottomEdge = bottomPct;
-      if (a.bottom > bottomEdge) { p.y = bottomEdge - a.height / 2; p.vy = -Math.abs(p.vy) * CONFIG.motion.restitution; }
+      const hw = (p.width / 2) * p.scale, hh = (p.height / 2) * p.scale;
+      if (p.x - hw < 0) { p.x = hw; p.vx = Math.abs(p.vx); }
+      else if (p.x + hw > 100) { p.x = 100 - hw; p.vx = -Math.abs(p.vx); }
+      if (p.y - hh < 0) { p.y = hh; p.vy = Math.abs(p.vy); }
+      else if (p.y + hh > 100) { p.y = 100 - hh; p.vy = -Math.abs(p.vy); }
 
       bounceOffInnerBox(p);
-
-      if (now >= p.cooldownUntil && p.uniqueHits.size === 0 && p.lastHitWith.size > images.length) p.lastHitWith.clear();
     }
 
-    if (!isFormingPattern && CONFIG.physics.collisions) resolveAABBCollisions(photoStates, now);
+    if (!isFormingPattern && CONFIG.physics.collisions) resolveCollisions(photoStates);
 
     for (const p of photoStates) {
       p.vx *= CONFIG.motion.damping; p.vy *= CONFIG.motion.damping;
-      const a = getAABB(p);
-      p.x = clamp(p.x, a.width / 2, 100 - a.width / 2);
-      p.y = clamp(p.y, a.height / 2, bottomPct - a.height / 2);
+      const hw = (p.width / 2) * p.scale, hh = (p.height / 2) * p.scale;
+      p.x = clamp(p.x, hw, 100 - hw); p.y = clamp(p.y, hh, 100 - hh);
     }
 
     for (let i = 0; i < photoStates.length; i++) {
-      const p = photoStates[i]; const el = nodes[i]; const cap = captionNodes[i];
+      const p = photoStates[i], el = nodes[i];
       if (!el) continue;
-      el.style.left = p.x + '%';
-      el.style.top = p.y + '%';
+      el.style.left = p.x + '%'; el.style.top = p.y + '%';
       el.style.width = p.size + '%';
       el.style.aspectRatio = String(p.aspectRatio);
       el.style.setProperty('--scale', String(p.scale));
-      if (cap) {
-        if (p.showCaption) {
-          cap.style.display = 'block';
-          cap.style.left = p.x + '%';
-          cap.style.top = p.y + '%';
-          cap.style.transform = 'translate(-50%, -50%)';
-          cap.style.opacity = '1';
-        } else {
-          cap.style.opacity = '0';
-          setTimeout(() => { if (cap && !photoStates[i]?.showCaption) cap.style.display = 'none'; }, 150);
-        }
-      }
     }
   }
 
@@ -312,28 +316,30 @@
       isFormingPattern = false;
       photoStates.forEach(p => {
         p.targetX = undefined; p.targetY = undefined;
-        const s = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
-        const a = rand(0, Math.PI * 2);
-        p.vx = Math.cos(a) * s; p.vy = Math.sin(a) * s;
+        const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed), angle = rand(0, Math.PI * 2);
+        p.vx = Math.cos(angle) * speed; p.vy = Math.sin(angle) * speed;
       });
     }
   }
-  function handleMouseLeave(i: number) { photoStates[i].showCaption = false; photoStates[i].scale = 1; }
+
+  function handleMouseLeave(i: number) {
+    photoStates[i].showCaption = false;
+    photoStates[i].scale = 1;
+  }
+
   function handleInteraction() {
     lastActivityTime = Date.now();
     if (isFormingPattern) {
       isFormingPattern = false;
       photoStates.forEach(p => {
         p.targetX = undefined; p.targetY = undefined;
-        const s = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed);
-        const a = rand(0, Math.PI * 2);
-        p.vx = Math.cos(a) * s; p.vy = Math.sin(a) * s;
+        const speed = rand(CONFIG.motion.minSpeed, CONFIG.motion.maxSpeed), angle = rand(0, Math.PI * 2);
+        p.vx = Math.cos(angle) * speed; p.vy = Math.sin(angle) * speed;
       });
     }
   }
-  function handleKeyInteraction(e: KeyboardEvent) { if (e.key === 'Enter' || e.key === ' ') handleInteraction(); }
 
-  let rafId = 0; let lastT = 0;
+  let rafId = 0, lastT = 0;
   function tick(ts: number) {
     if (!lastT) lastT = ts;
     const dt = Math.min((ts - lastT) / 1000, CONFIG.motion.dtClamp);
@@ -342,57 +348,36 @@
     rafId = requestAnimationFrame(tick);
   }
 
-  const iconPath = (n: string) => {
-    switch (n) {
-      case "github": return "M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.73-4.04-1.61-4.04-1.61-.55-1.38-1.35-1.75-1.35-1.75-1.1-.76.08-.74.08-.74 1.22.09 1.86 1.27 1.86 1.27 1.08 1.85 2.83 1.32 3.52 1.01.11-.79.42-1.32.77-1.63-2.66-.30-5.46-1.33-5.46-5.93 0-1.31.47-2.38 1.25-3.22-.13-.30-.54-1.52.12-3.16 0 0 1.01-.32 3.30 1.23a11.4 11.4 0 0 1 6.01 0c2.29-1.55 3.30-1.23 3.30-1.23.66 1.64.25 2.86.12 3.16.78.84 1.25 1.91 1.25 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.82 1.10.82 2.22v3.29c0 .33.22.70.83.58A12 12 0 0 0 12 .5Z";
-      case "linkedin": return "M4.98 3.5a2.5 2.5 0 1 1-.02 5 2.5 2.5 0 0 1 .02-5zM3 8.98h3.96v12.5H3V8.98zm6.74 0H14v1.7h.05c.58-1.10 2-2.25 4.12-2.25 4.41 0 5.23 2.90 5.23 6.67v6.38H19.4v-5.66c0-1.35-.02-3.09-1.88-3.09-1.88 0-2.17 1.47-2.17 2.99v5.76H11.7V8.98z";
-      case "mail": return "M2 6l10 7 10-7v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm20-2H2l10 7 10-7z";
-      case "file": return "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z";
-      default: return "";
-    }
-  };
+  const iconPath = (name: string) => ({
+    github: "M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.73-4.04-1.61-4.04-1.61-.55-1.38-1.35-1.75-1.35-1.75-1.1-.76.08-.74.08-.74 1.22.09 1.86 1.27 1.86 1.27 1.08 1.85 2.83 1.32 3.52 1.01.11-.79.42-1.32.77-1.63-2.66-.30-5.46-1.33-5.46-5.93 0-1.31.47-2.38 1.25-3.22-.13-.30-.54-1.52.12-3.16 0 0 1.01-.32 3.30 1.23a11.4 11.4 0 0 1 6.01 0c2.29-1.55 3.30-1.23 3.30-1.23.66 1.64.25 2.86.12 3.16.78.84 1.25 1.91 1.25 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.82 1.10.82 2.22v3.29c0 .33.22.70.83.58A12 12 0 0 0 12 .5Z",
+    linkedin: "M4.98 3.5a2.5 2.5 0 1 1-.02 5 2.5 2.5 0 0 1 .02-5zM3 8.98h3.96v12.5H3V8.98zm6.74 0H14v1.7h.05c.58-1.10 2-2.25 4.12-2.25 4.41 0 5.23 2.90 5.23 6.67v6.38H19.4v-5.66c0-1.35-.02-3.09-1.88-3.09-1.88 0-2.17 1.47-2.17 2.99v5.76H11.7V8.98z",
+    mail: "M2 6l10 7 10-7v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm20-2H2l10 7 10-7z",
+    file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"
+  }[name] || "");
 
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-
-  onMount(() => {
-    if (!browser) return;
-    isBrowser = true;
-    // Toggle a class to disable scrolling ONLY while this page is mounted
-    document.documentElement.classList.add('no-scroll');
-    document.body.classList.add('no-scroll');
-
-    updateViewport();
-    window.addEventListener('resize', updateViewport, { passive: true });
-    initializePhotos();
-    rafId = requestAnimationFrame(tick);
-
-    document.addEventListener('mousemove', handleInteraction, { passive: true });
-    document.addEventListener('click', handleInteraction);
-    document.addEventListener('keydown', handleInteraction);
+  
+  onMount(() => { 
+    isBrowser = browser;
+    if (browser) {
+      initializePhotos(); 
+      rafId = requestAnimationFrame(tick);
+      document.addEventListener('mousemove', handleInteraction);
+      document.addEventListener('click', handleInteraction);
+    }
   });
-
-  onDestroy(() => {
-    if (!browser) return;
-    if (rafId) cancelAnimationFrame(rafId);
-
-    window.removeEventListener('resize', updateViewport);
-    document.removeEventListener('mousemove', handleInteraction);
-    document.removeEventListener('click', handleInteraction);
-    document.removeEventListener('keydown', handleInteraction);
-
-    // Re-enable scrolling when leaving the home page
-    document.documentElement.classList.remove('no-scroll');
-    document.body.classList.remove('no-scroll');
+  
+  onDestroy(() => { 
+    if (isBrowser && rafId) {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener('mousemove', handleInteraction);
+      document.removeEventListener('click', handleInteraction);
+    }
   });
 </script>
 
-<div class="page"
-     role="application"
-     on:mousemove={handleInteraction}
-     on:click={handleInteraction}
-     on:keydown={handleKeyInteraction}
-     tabindex="0">
+<div class="page" on:mousemove={handleInteraction} on:click={handleInteraction} tabindex="0">
   <div class="bg"></div>
 
   <div class="stage" class:patterning={isFormingPattern}>
@@ -407,7 +392,7 @@
     {#key CONFIG.inner.width}
       {#await Promise.resolve(getInner()) then inner}
         <div class="center-box" class:patterning={isFormingPattern}
-             style="left:{inner.x}%; top:{inner.y}%; width:{inner.width}%; height:{inner.height}%;">
+          style="left:{inner.x}%; top:{inner.y}%; width:{inner.width}%; height:{inner.height}%;">
           <div class="center-content">
             <h1 class="name">{name}</h1>
             <p class="tag">{tagline}</p>
@@ -427,26 +412,17 @@
     {#if isBrowser}
       <div class="field">
         {#each photoStates as state, i}
-          <div class="photo-container">
-            <figure
-              bind:this={nodes[i]}
-              class="thumb"
-              style="left:{state.x}%; top:{state.y}%; width:{state.size}%; aspect-ratio:{state.aspectRatio};"
-              on:mouseenter={() => handleMouseEnter(i)}
-              on:mouseleave={() => handleMouseLeave(i)}
-              on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleMouseEnter(i); }}
-              tabindex="0"
-              role="button"
-              aria-label={`View ${captions[i] ?? `Photo ${i + 1}`}`}
-            >
-              <img src={images[i]} alt={`${(captions[i] ?? "Gallery image")} - gallery image ${i + 1}`} loading="lazy" decoding="async" />
-              <div class="gloss"></div>
-            </figure>
-
-            <div bind:this={captionNodes[i]} class="caption-box" style="display: none; opacity: 0;">
-              {captions[i] ?? `Photo ${i + 1}`}
-            </div>
-          </div>
+          <figure bind:this={nodes[i]} class="thumb"
+            style="left:{state.x}%; top:{state.y}%; width:{state.size}%; aspect-ratio:{state.aspectRatio};"
+            on:mouseenter={() => handleMouseEnter(i)}
+            on:mouseleave={() => handleMouseLeave(i)}
+            tabindex="0" role="button" aria-label={`View ${captions[i]}`}>
+            <img src={images[i]} alt={`${captions[i]} - gallery image ${i + 1}`} loading="lazy" decoding="async" />
+            <div class="gloss"></div>
+            {#if state.showCaption}
+              <figcaption class="caption">{captions[i]}</figcaption>
+            {/if}
+          </figure>
         {/each}
       </div>
     {/if}
@@ -461,23 +437,16 @@
     --box-glow:rgba(194,31,31,0.15);
   }
 
-  /* Only disable scrolling when the 'no-scroll' class is present (set by this component) */
-  :global(html.no-scroll), :global(body.no-scroll) {
-    overflow: hidden !important;
-    height: 100%;
-  }
+  :global(html), :global(body) { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
 
   .page{
-    position: relative;
-    display: flex; justify-content: center; align-items: center;
-    width: 100vw; height: 100vh; min-height: 100vh;
-    background: var(--bg-0); color: var(--ink);
-    font-family: Inter, SF Pro Text, Segoe UI, Roboto, system-ui, -apple-system, Arial, sans-serif;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    box-sizing: border-box; outline: none;
+    position:relative; display:flex; justify-content:center; align-items:center;
+    width:100vw; height:100vh; min-height:100vh; background:var(--bg-0); color:var(--ink);
+    font-family:Inter,SF Pro Text,Segoe UI,Roboto,system-ui,-apple-system,Arial,sans-serif;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing:border-box; outline:none;
   }
   @supports (height: 100dvh){ .page{ height:100dvh; min-height:100dvh; } }
-  @supports (height: 100svh){ .page{ height:100svh; min-height:100svh; } }
 
   .bg{
     position:absolute; inset:0; z-index:0;
@@ -493,11 +462,16 @@
   }
   @keyframes grain{ to { transform: translate3d(-8%, -8%, 0); } }
 
-  .stage{ position: absolute; inset: 0; width: 100vw; height: 100vh; z-index: 1; margin: 0; overflow: hidden; transition: filter 240ms ease; }
-  .stage.patterning { filter: none; }
+  .stage{
+    position:absolute; inset:0; width:100vw; height:100vh; z-index:1; margin:0; overflow:hidden;
+    transition: filter 240ms ease;
+  }
 
   .constellation{ position:absolute; inset:0; z-index:2; pointer-events:none; }
-  .inner-box { fill:none; stroke:var(--box-glow); stroke-width:1.2; vector-effect:non-scaling-stroke; filter: drop-shadow(0 0 12px var(--box-glow)); transition: opacity 240ms ease; opacity: 1; }
+  .inner-box {
+    fill:none; stroke:var(--box-glow); stroke-width:1.2; vector-effect:non-scaling-stroke;
+    filter: drop-shadow(0 0 12px var(--box-glow)); transition: opacity 240ms ease; opacity:1;
+  }
   .stage.patterning .inner-box { opacity: 0.18; }
 
   .center-box{
@@ -505,57 +479,78 @@
     background: rgba(34,36,42,0.85); backdrop-filter: blur(12px);
     border: 1.5px solid var(--box-glow); border-radius: 16px;
     box-shadow: 0 0 40px rgba(194,31,31,0.15), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 20px rgba(194,31,31,0.05);
-    transition: background 240ms ease, border-color 240ms ease, box-shadow 240ms ease, backdrop-filter 240ms ease;
+    transition: background 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
   }
-  .center-box.patterning{ background: rgba(34,36,42,0.1); backdrop-filter: blur(4px); border-color: rgba(194,31,31,0.20);
-    box-shadow: 0 0 20px rgba(194,31,31,0.08), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 0 10px rgba(194,31,31,0.03); }
+  .center-box.patterning{
+    background: rgba(34,36,42,0.1); border-color: rgba(194,31,31,0.20);
+    box-shadow: 0 0 20px rgba(194,31,31,0.08), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 0 10px rgba(194,31,31,0.03);
+  }
 
-  .center-content{ display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:clamp(1rem, 3vmin, 2rem); width:100%; }
-  .name{ font-size: clamp(1.5rem, 6vmin, 4rem); line-height:.95; margin:0 0 .5rem 0; letter-spacing:.04em;
-         background: linear-gradient(180deg, #f3f3f6, #c7c9d3 65%, #9ea3b1); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .center-content{ 
+    display:flex; flex-direction:column; justify-content:center; align-items:center; 
+    text-align:center; padding:clamp(1rem, 3vmin, 2rem); width:100%; 
+  }
+  .name{ 
+    font-size: clamp(1.5rem, 6vmin, 4rem); line-height:.95; margin:0 0 .5rem 0; letter-spacing:.04em;
+    background: linear-gradient(180deg, #f3f3f6, #c7c9d3 65%, #9ea3b1);
+    -webkit-background-clip:text; background-clip:text; color:transparent; 
+  }
   .tag{ margin:0 0 1.2rem 0; color: var(--muted); font-size: clamp(.75rem, 1.8vmin, 1rem); }
   .links{ display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; }
-  .pill{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:999px; color:#fff; text-decoration:none; font-weight:600; letter-spacing:.02em;
-         background: linear-gradient(180deg, var(--deep-red), var(--dark-crimson)); box-shadow: 0 6px 18px rgba(194,31,31,.25), inset 0 0 0 1px rgba(194,31,31,.35);
-         transition: transform 160ms ease, box-shadow 160ms ease; font-size: clamp(.7rem, 1.6vmin, .9rem); }
+  .pill{
+    display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:999px;
+    color:#fff; text-decoration:none; font-weight:600; letter-spacing:.02em;
+    background: linear-gradient(180deg, var(--deep-red), var(--dark-crimson));
+    box-shadow: 0 6px 18px rgba(194,31,31,.25), inset 0 0 0 1px rgba(194,31,31,.35);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    font-size: clamp(.7rem, 1.6vmin, .9rem);
+  }
   .pill:hover{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(194,31,31,.35), inset 0 0 0 1px rgba(194,31,31,.5); }
   .pill:focus-visible { outline: 2px solid var(--glow-red); outline-offset: 2px; }
   .pill svg{ width:16px; height:16px; fill: currentColor; }
 
   .field{ position:absolute; inset:0; z-index:2; pointer-events:none; }
-  .photo-container{ position:absolute; inset:0; pointer-events:auto; }
 
   .thumb{
-    position:absolute; transform: translate(-50%, -50%) scale(var(--scale, 1)); transform-origin: center center;
-    will-change: transform, left, top; contain: layout paint; border-radius: 12px; overflow:hidden; pointer-events:auto;
+    position:absolute; transform: translate(-50%, -50%) scale(var(--scale, 1));
+    transform-origin: center center; will-change: transform; contain: layout paint;
+    border-radius: 12px; overflow:hidden; pointer-events:auto;
     box-shadow: 0 8px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.06);
-    transition: transform 160ms ease, box-shadow 160ms ease; background:#2f323a; cursor:pointer; z-index:5; outline: none;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+    background:#2f323a; cursor:pointer; z-index:5; outline: none;
   }
-  .thumb:hover, .thumb:focus { box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6); z-index:25; }
+  .thumb:hover, .thumb:focus {
+    box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 0 2px rgba(194,31,31,.6); z-index:25;
+  }
   .thumb:focus-visible { outline: 2px solid var(--glow-red); outline-offset: 2px; }
-  .thumb img{ width:100%; height:100%; object-fit:cover; display:block; filter: saturate(.95) contrast(1.05); }
-  .thumb .gloss{ position:absolute; inset:0; pointer-events:none;
-    background: radial-gradient(90% 90% at 85% 15%, rgba(255,255,255,.18), transparent 45%),
-                linear-gradient(180deg, rgba(194,31,31,.16), transparent 45%, transparent 55%, rgba(194,31,31,.12));
-    mix-blend-mode: screen; }
 
-  .caption-box{
-    position: absolute; z-index: 30; background: rgba(34,36,42,0.95); backdrop-filter: blur(8px); color: var(--ink);
-    padding: 0.45rem 0.7rem; border-radius: 8px; font-size: clamp(0.6rem, 1.4vmin, 0.8rem);
-    white-space: nowrap; text-align: center; border: 1px solid var(--box-glow); box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    pointer-events: none; transition: opacity 150ms ease-out; transform-origin: center center;
+  .thumb img{ width:100%; height:100%; object-fit:cover; display:block; filter: saturate(.95) contrast(1.05); }
+  .thumb .gloss{
+    position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(90% 90% at 85% 15%, rgba(255,255,255,.18), transparent 45%),
+      linear-gradient(180deg, rgba(194,31,31,.16), transparent 45%, transparent 55%, rgba(194,31,31,.12));
+    mix-blend-mode: screen;
   }
+
+  .caption{
+    position:absolute; left:50%; bottom:-0.1rem; transform: translate(-50%, 100%);
+    background: rgba(34,36,42,0.95); backdrop-filter: blur(8px);
+    color: var(--ink); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: clamp(.6rem, 1.4vmin, .8rem);
+    white-space: nowrap; z-index: 30; border: 1px solid var(--box-glow);
+    box-shadow: 0 4px 16px rgba(0,0,0,.4); pointer-events: none; animation: fadeIn 150ms ease-out;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translate(-50%, calc(100% + 8px)); } to { opacity:1; transform: translate(-50%, 100%); } }
 
   @media (max-width: 768px) {
     .center-box { border-radius: 12px; }
     .links{ gap: .5rem; }
     .pill{ padding: .4rem .8rem; }
-    .caption-box { font-size: 0.55rem; padding: 0.35rem 0.55rem; }
   }
   @media (max-width: 480px) {
     .name{ font-size: clamp(1.2rem, 5vmin, 3rem); }
     .tag{ margin-bottom: 1rem; }
     .links{ flex-direction: column; align-items: center; }
-    .caption-box { font-size: 0.5rem; padding: 0.3rem 0.5rem; }
+    .caption{ font-size: .6rem; padding: .3rem .6rem; }
   }
 </style>

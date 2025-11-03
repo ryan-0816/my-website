@@ -189,9 +189,6 @@
 			<li aria-current={page.url.pathname === '/about-me' ? 'page' : undefined}>
 				<a href="/about-me">About Me</a>
 			</li>
-			<li aria-current={page.url.pathname.startsWith('/contact') ? 'page' : undefined}>
-				<a href="/contact">Contact Us</a>
-			</li>
 			<li aria-current={page.url.pathname === '/forms' ? 'page' : undefined}>
 				<a href="/forms">Forms</a>
 			</li>

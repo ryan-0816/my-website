@@ -29,12 +29,35 @@
   • Developed a course recommendation webpage based on student academic history
   `;
 
-  const about3 = `<b>Student Inventory Control Specialist</b>
-  •  Managed tools, parts, and supply logistics across campus in collaboration with mechanics.
+  const about3 = `<b>Student Inventory Control Specialist | RIT, NY</b>
+  • Managed tools, parts, and supply logistics across campus in collaboration with mechanics.
   • Maintained inventory records and enforced access control to secure storage areas.
-  <b>Ski Instructor</b>
+
+  <b>Ski Instructor | Yawgoo Valley, RI</b>
+  • Taught skiing fundamentals to students of all levels, prioritizing safety and engagement.
+  • Adapted lesson plans dynamically based on student age, ability, and weather conditions.
+  
+  <b>Park Ranger II | Fort Adams, RI</b>
+  • Provided customer service, directions, and information to park, beach, and fort visitors. 
+  • Patrolled to enforce rules, assisted with safety concerns, and mitigated hazards.
+  
+  <b>Assistant Teacher | Circuit Lab, RI</b>
+  • Led hands-on STEM activities in electronics, robotics, and programming for youth aged 6–14.
+  • Delivered engaging lessons while supporting classroom safety and individual learning.
+
   `;
-  const about4 = `4`;
+  const about4 = `<b>Lego!</b>
+  I love building Lego. My wallet does not. In particular I love the Lego Star Wars series. I have the Imperial Star Destroyer (75394), and from the starship collection: Millenium Falcon (75375), Executive Super Star Destroyer (75356), and am awaiting the Venator next year.
+  
+  <b>Badminton</b>
+  I had only really played during gym class before coming here, but now that I have had access to a great gym and community to play with, I have really discovered my passion. I have participated in intramural intermediate badminton for two seasons and I go to the gym and play casual badminton whenever time allows in my schedule.
+  
+  <b>Typing</b>
+  I have always enjoyed typing as something simple and repetitive to destress. There are a variety of fun typing games that I have enjoyed. I also explored different layouts, having switched to Colemak for about half a year. It was a cool experience, even though it didn't stick. 
+  
+  <b>Stenography</b>
+  I started stenography about two years ago, buying a hobbyist keyboard to get started. Since then I have practiced in my free time. I enjoy learning new words and briefs every day, and am up to 100 wpm at 97.4% accuracy as of 11/2/25. 
+  `;
 
   type IconName = "github" | "linkedin" | "mail" | "file";
 
@@ -63,6 +86,12 @@
     { src: "/photos/photo12.jpg", href: "#", alt: "Hackathon demo" }
   ];
 
+  const projectTiles2: Required<Card>["photoGrid"] = [
+    { src: "/terraform.png",  href: "#", alt: "Terraform static hosting" },
+    { src: "/photos/photo10.jpg", href: "https://github.com/ryan-0816/Scripts", alt: "Network intrusion monitor" },
+    { src: "/ski website.png", href: "https://github.com/ryan-0816/ski", alt: "Ski Club Website" }
+  ];
+
   const projectExtraLinks: Card["extraLinks"] = [
     { href: "https://github.com/ryan-0816", label: "Project Repos", icon: "github" },
     { href: "/Ryan Tagen Resume.pdf", label: "Project Summary (PDF)", icon: "file" }
@@ -70,9 +99,8 @@
 
   const sections: Card[] = [
     { heading: name, sub: tagline, about: baseAbout, photo: "/photos/photo5.jpg", links: defaultLinks, height: 380 },
-    // ↑↑ Card 2: more height for bigger previews
     { heading: "Personal Projects", sub: "Builds • Scripts • Infra", about: about2, photoGrid: projectTiles, extraLinks: projectExtraLinks, height: 720 },
-    { heading: "Work Experience", sub: "Labs • Clubs • Ops", about: about3, photo: "/photos/photo14.jpg", height: 360 },
+    { heading: "Work Experience", sub: "Labs • Clubs • Ops", about: about3, photoGrid: projectTiles2, height: 500 },
     { heading: "Hobbies", sub: "Skiing • Sailing • Tinkering", about: about4, photo: "/photos/photo18.jpg", height: "auto" }
   ];
 
