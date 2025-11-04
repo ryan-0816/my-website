@@ -1,4 +1,5 @@
 <!-- AboutStack.svelte — scrollable “hero” cards with gray glass backgrounds -->
+ <!-- about me page-->
 <script lang="ts">
   const CONFIG = {
     width: 92,
@@ -11,22 +12,26 @@
   export let name = "RYAN TAGEN";
   const tagline = "Cybersecurity";
 
-  const baseAbout = `
-  Hi! I’m Ryan, an accelerated BS/MS cybersecurity student at RIT. I love partaking in cybersecurity related activities, playing sports, and my sense community here at college! I am currently looking to apply my technical and practical skills in a co-op in summer of 2026 in cybersecurity, computer science, information technology, or a related field. The rest of this page summarizes my resume, along with some other hobbies and things about me!`;
+  const baseAbout = `Hi! I'm Ryan, an accelerated BS/MS cybersecurity student at RIT. I love partaking in cybersecurity related activities, playing sports, and my sense community here at college! I am currently looking to apply my technical and practical skills in a co-op in summer of 2026 in cybersecurity, computer science, information technology, or a related field. The rest of this page summarizes my resume, along with some other hobbies and things about me!`;
 
   const about2 = `<b>Static Website Deployment with Terraform</b>
   • Provisioned modular, version-controlled static web hosting using infrastructure as code
   • Deployed optimized assets for a consistent, reliable experience and repeatable builds
 
   <b>Network Intrusion Monitor Script</b>
-  • Python/Scapy script to detect port scans, brute-force attempts, and suspicious DNS activity
+  • Built a lightweight Network Intrusion Monitor in Python using Scapy to parse live traffic and capture forensic PCAPs.
+  • Detects behavioral threats: port scans, SSH brute-force attempts, and anomalous DNS responses using sliding-window heuristics.
+  • Emits structured JSONL alerts and timestamped evidence files for easy analysis.
+  • Designed for safe lab demos (isolated VMs + test harnesses), with clear tuning notes to reduce false positives.
 
   <b>Website Development</b>
-  • Developed Svelte-based webpages for student organizations such as the Alpine Ski Club and Chinese Conversation Table
+  • Developed Svelte-based webpages for student organizations such as the Alpine Ski Club and Chinese Conversation Table Club
   • Integrated google services such as calendar to convey schedules
 
   <b>Northland Hackathon</b>
-  • Developed a course recommendation webpage based on student academic history
+  • Minnesota's largest hackathon (one of my team members' home state)
+  • Working in a team of 3, we developed a course recommendation webpage based on student academic history
+  • Included webscraping RIT's Student Information System for class information, databasing it with PostgreSQL, then integrating a frontend user interface using Svelte. 
   `;
 
   const about3 = `<b>Student Inventory Control Specialist | RIT, NY</b>
@@ -46,6 +51,7 @@
   • Delivered engaging lessons while supporting classroom safety and individual learning.
 
   `;
+
   const about4 = `<b>Lego!</b>
   I love building Lego. My wallet does not. In particular I love the Lego Star Wars series. I have the Imperial Star Destroyer (75394), and from the starship collection: Millenium Falcon (75375), Executive Super Star Destroyer (75356), and am awaiting the Venator next year.
   
@@ -57,6 +63,16 @@
   
   <b>Stenography</b>
   I started stenography about two years ago, buying a hobbyist keyboard to get started. Since then I have practiced in my free time. I enjoy learning new words and briefs every day, and am up to 100 wpm at 97.4% accuracy as of 11/2/25. 
+  `;
+
+  const about5 = `<b>Alpine Skiing</b>
+  I grew up skiing at the only hill in Rhode Island, taking the occasional trip up to Vermont. Winter has always been my favorite season in part due to this. When I came to RIT and saw they had an alpine ski team, I immediately joined despite never having thought of racing before. I had a blast my first winter in New York, and plan to ski even more this season.
+
+  <b>Sailing</b>
+  I started sailing on a Snapir OD 11 and a Sunfish, but really started learning when I joined my high school's 420 fleet, practicing dinghy sailing as a crew and attending regattas throughout the state. I also joined my local Sea Scouts chapter to gain more experience. One of my favorite memories was sailing for a week on the USCGC Eagle. Some of my favorite classes to sail/race are the C420, Farr 40, Laser, and J110. 
+
+  <b>Casual</b>
+  I am currently taking the beginner pickleball wellness course at RIT, and am enjoying it immensely. I am also participating in intramural beginner volleyball on the RITSEC team, which has also been a blast. I attend both table tennis and badminton weekly clubs as well.
   `;
 
   type IconName = "github" | "linkedin" | "mail" | "file";
@@ -80,16 +96,24 @@
   ];
 
   const projectTiles: Required<Card>["photoGrid"] = [
-    { src: "/terraform.png",  href: "#", alt: "Terraform static hosting" },
+    { src: "/terraform.png",  href: "https://github.com/ryan-0816/terraform", alt: "Terraform static hosting" },
     { src: "/photos/photo10.jpg", href: "https://github.com/ryan-0816/Scripts", alt: "Network intrusion monitor" },
     { src: "/ski website.png", href: "https://github.com/ryan-0816/ski", alt: "Ski Club Website" },
     { src: "/photos/photo12.jpg", href: "#", alt: "Hackathon demo" }
   ];
 
-  const projectTiles2: Required<Card>["photoGrid"] = [
-    { src: "/terraform.png",  href: "#", alt: "Terraform static hosting" },
+  const workExperienceTiles: Required<Card>["photoGrid"] = [
+    { src: "/photos/truck.jpg", href: "https://www.rit.edu/fa/auxiliary-services", alt: "RIT Inventory Control" },
+    { src: "/photos/yawgoo.jpg", href: "https://yawgoo.com/", alt: "Ski Instructor" },
+    { src: "/photos/sky.jpg", href: "https://riparks.ri.gov/parks/fort-adams-state-park", alt: "Park Ranger" },
+    { src: "/photos/circuit.png", href: "https://www.circuit-lab.com/", alt: "Circuit Lab Teaching" }
+  ];
+
+  const sportsTiles: Required<Card>["photoGrid"] = [
+    { src: "/terraform.png",  href: "https://github.com/ryan-0816/terraform", alt: "Terraform static hosting" },
     { src: "/photos/photo10.jpg", href: "https://github.com/ryan-0816/Scripts", alt: "Network intrusion monitor" },
-    { src: "/ski website.png", href: "https://github.com/ryan-0816/ski", alt: "Ski Club Website" }
+    { src: "/ski website.png", href: "https://github.com/ryan-0816/ski", alt: "Ski Club Website" },
+    { src: "/photos/photo12.jpg", href: "#", alt: "Hackathon demo" }
   ];
 
   const projectExtraLinks: Card["extraLinks"] = [
@@ -98,10 +122,11 @@
   ];
 
   const sections: Card[] = [
-    { heading: name, sub: tagline, about: baseAbout, photo: "/photos/photo5.jpg", links: defaultLinks, height: 380 },
-    { heading: "Personal Projects", sub: "Builds • Scripts • Infra", about: about2, photoGrid: projectTiles, extraLinks: projectExtraLinks, height: 720 },
-    { heading: "Work Experience", sub: "Labs • Clubs • Ops", about: about3, photoGrid: projectTiles2, height: 500 },
-    { heading: "Hobbies", sub: "Skiing • Sailing • Tinkering", about: about4, photo: "/photos/photo18.jpg", height: "auto" }
+    { heading: name, about: baseAbout, photo: "/photos/photo5.jpg", links: defaultLinks, height: 380 },
+    { heading: "Personal Projects", about: about2, photoGrid: projectTiles, extraLinks: projectExtraLinks, height: 720 },
+    { heading: "Work Experience", about: about3, photoGrid: workExperienceTiles, height: 720 },
+    { heading: "Sports", about: about5, photoGrid: sportsTiles, height:600 },
+    { heading: "Hobbies", about: about4, photo: "/photos/photo18.jpg", height: "auto" }
   ];
 
   const iconPath = (name: IconName) => {
@@ -168,10 +193,10 @@
 
           <!-- IMAGE COLUMN -->
           {#if s.photoGrid}
-            <div class="hero-photo-grid projects-grid" aria-label="project previews">
+            <div class="hero-photo-grid projects-grid" aria-label="section previews">
               {#each s.photoGrid as tile}
-                <a class="project-thumb" href={tile.href} target="_blank" rel="noopener noreferrer" aria-label={tile.alt ?? 'Project link'}>
-                  <img src={tile.src} alt={tile.alt ?? 'Project image'} loading="lazy" decoding="async" />
+                <a class="project-thumb" href={tile.href} target="_blank" rel="noopener noreferrer" aria-label={tile.alt ?? 'Section link'}>
+                  <img src={tile.src} alt={tile.alt ?? 'Section image'} loading="lazy" decoding="async" />
                   <div class="gloss"></div>
                 </a>
               {/each}
@@ -263,18 +288,21 @@
     align-items: stretch;
   }
 
-  /* === Target ONLY the 2nd card (Personal Projects) === */
-  .stack > section.hero:nth-of-type(2){
+  /* === Target cards with photo grids (Personal Projects AND Work Experience) === */
+  .stack > section.hero:nth-of-type(2),
+  .stack > section.hero:nth-of-type(3) {
     grid-template-columns: 1.5fr 0.9fr; /* more room for text, pushes images right */
   }
-  .stack > section.hero:nth-of-type(2) .projects-grid{
+  .stack > section.hero:nth-of-type(2) .projects-grid,
+  .stack > section.hero:nth-of-type(3) .projects-grid {
     margin-left: 1rem;            /* shifts the left border of images to the right */
     min-height: 520px;            /* taller image column for more visual area */
   }
 
   @media (max-width: 880px){
     .hero{ grid-template-columns: 1fr; height: auto !important; }
-    .stack > section.hero:nth-of-type(2) .projects-grid{
+    .stack > section.hero:nth-of-type(2) .projects-grid,
+    .stack > section.hero:nth-of-type(3) .projects-grid {
       margin-left: 0;             /* reset on mobile */
       min-height: 360px;
     }

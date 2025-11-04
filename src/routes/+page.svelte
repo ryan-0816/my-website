@@ -1,4 +1,5 @@
 <script lang="ts">
+  // main page.svelte
   // ===== ONE PLACE TO EDIT =====
   const CONFIG = {
     hover: { scale: 1.6, captionDelay: 0 },
@@ -23,13 +24,13 @@
   ];
 
   const captions: string[] = [
-    "Cybersecurity project","Campus life at RIT","Technical workshop","Team collaboration",
-    "Security conference","Programming session","Network security lab","Research presentation",
-    "Hackathon event","Code review","System architecture","Security analysis",
-    "Project demonstration","Technical training","Team building","Innovation showcase",
-    "Security audit","Development work","Academic project","Professional event",
-    "Technical discussion","Security research","Collaborative work","Achievement celebration",
-    "Conference presentation","Lab work","Team project"
+    "All hail the mighty Capybara","Capybara general","Feeding a little guy","Top of Ampersand Mountain",
+    "Park Ranger duties","4th of July","Betrayal?","First time racing!",
+    "Luna, Aussie shepherd mix","ATVing in Taiwan","3","Gokart racing!",
+    "USCGC Eagle","I love sailing","Sea Scouts","Luna my beloved",
+    "smol dog","pumpkin Luna!","Mt. Snow with dad","Luna and Molly (foster)",
+    "Cuttyhunk Island","Senior picnic","baby Luna","Rock climbing at Acadia",
+    "Scuba cert", "Ceramics class", "Night market"
   ];
 
   const links = [
