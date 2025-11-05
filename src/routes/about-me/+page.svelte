@@ -136,8 +136,8 @@
   ];
 
   const clubsTiles: Required<Card>["photoGrid"] = [
-    { src: "/photos/truck.jpg", href: "https://www.rit.edu/fa/auxiliary-services", alt: "RIT Inventory Control" },
-    { src: "/photos/yawgoo.jpg", href: "https://yawgoo.com/", alt: "Ski Instructor" },
+    { src: "/photos/ritsec.png", href: "https://www.rit.edu/fa/auxiliary-services", alt: "RIT Inventory Control" },
+    { src: "/photos/cct.png", href: "https://yawgoo.com/", alt: "Ski Instructor" },
     { src: "/photos/sky.jpg", href: "https://riparks.ri.gov/parks/fort-adams-state-park", alt: "Park Ranger" },
     { src: "/photos/circuit.png", href: "https://www.circuit-lab.com/", alt: "Circuit Lab Teaching" }
   ];
@@ -147,7 +147,7 @@
     { src: "/photos/photo31.jpg", href: "#", alt: "Racing" },
     { src: "/photos/photo28.jpg", href: "#", alt: "Sodus Sailing" },
     { src: "/photos/photo29.jpg", href: "#", alt: "Sailing at uscga" },
-    { src: "/photos/badminton.png", href: "#", alt: "Table Tennis" },
+    { src: "/photos/eagle1.jpg", href: "#", alt: "Table Tennis" },
     { src: "/photos/photo20.jpg", href: "#", alt: "Volleyball" },
     { src: "/photos/photo21.jpg", href: "#", alt: "Ski Racing" },
     { src: "/photos/badminton.png", href: "#", alt: "Badminton" }
