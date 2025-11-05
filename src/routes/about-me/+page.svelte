@@ -12,74 +12,86 @@
   export let name = "RYAN TAGEN";
   const tagline = "Cybersecurity";
 
-  const baseAbout = `Hi! I'm Ryan, an accelerated BS/MS cybersecurity student at RIT. I love partaking in cybersecurity related activities, playing sports, and my sense community here at college! I am currently looking to apply my technical and practical skills in a co-op in summer of 2026 in cybersecurity, computer science, information technology, or a related field. The rest of this page summarizes my resume, along with some other hobbies and things about me!`;
+  const baseAbout = `Hi! I'm Ryan, a cybersecurity student at RIT. I love partaking in cybersecurity related activities, playing sports, and my sense of community here at college! I am in the accelerated BS/MS program, so I plan to graduate with both degrees in May of 2028. I am currently looking to apply my technical and practical skills in a co-op in summer of 2026 in cybersecurity, computer science, information technology, or a related field. The rest of this page summarizes my resume, along with some other hobbies and things about me!`;
 
   const about2 = `<b>Static Website Deployment with Terraform</b>
   • Provisioned modular, version-controlled static web hosting using infrastructure as code
   • Deployed optimized assets for a consistent, reliable experience and repeatable builds
 
   <b>Network Intrusion Monitor Script</b>
-  • Built a lightweight Network Intrusion Monitor in Python using Scapy to parse live traffic and capture forensic PCAPs.
-  • Detects behavioral threats: port scans, SSH brute-force attempts, and anomalous DNS responses using sliding-window heuristics.
-  • Emits structured JSONL alerts and timestamped evidence files for easy analysis.
-  • Designed for safe lab demos (isolated VMs + test harnesses), with clear tuning notes to reduce false positives.
+  • Built a lightweight Network Intrusion Monitor in Python using Scapy to parse live traffic and capture forensic PCAPs
+  • Detects behavioral threats: port scans, SSH brute-force attempts, and anomalous DNS responses using sliding-window heuristics
+  • Emits structured JSONL alerts and timestamped evidence files for easy analysis
 
   <b>Website Development</b>
   • Developed Svelte-based webpages for student organizations such as the Alpine Ski Club and Chinese Conversation Table Club
-  • Integrated google services such as calendar to convey schedules
+  • Integrated google services such as calendars to convey schedules easily
 
   <b>Northland Hackathon</b>
   • Minnesota's largest hackathon (one of my team members' home state)
   • Working in a team of 3, we developed a course recommendation webpage based on student academic history
-  • Included webscraping RIT's Student Information System for class information, databasing it with PostgreSQL, then integrating a frontend user interface using Svelte. 
+  • Included webscraping RIT's Student Information System for class information, databasing with PostgreSQL, then integrating a frontend user interface using Svelte. 
   `;
 
   const about3 = `<b>Student Inventory Control Specialist | RIT, NY</b>
-  • Managed tools, parts, and supply logistics across campus in collaboration with mechanics.
-  • Maintained inventory records and enforced access control to secure storage areas.
+  <i>Fall 2024 - Present</i>
+  • Collaborated with mechanics to manage tools, parts, and supply logistics across campus.
 
   <b>Ski Instructor | Yawgoo Valley, RI</b>
+  <i>Winter 2021 - Present</i>
   • Taught skiing fundamentals to students of all levels, prioritizing safety and engagement.
   • Adapted lesson plans dynamically based on student age, ability, and weather conditions.
   
   <b>Park Ranger II | Fort Adams, RI</b>
+  <i>Summer 2025</i>
   • Provided customer service, directions, and information to park, beach, and fort visitors. 
   • Patrolled to enforce rules, assisted with safety concerns, and mitigated hazards.
   
   <b>Assistant Teacher | Circuit Lab, RI</b>
+  <i>Summer 2025</i>
   • Led hands-on STEM activities in electronics, robotics, and programming for youth aged 6–14.
   • Delivered engaging lessons while supporting classroom safety and individual learning.
 
+  <b>Information Technology Intern | North Kingstown Senior High School, RI</b>
+  <i>Summer 2021</i>
+  • Reimaged and deployed 100+ computers with secure configurations for the academic year
+  • Cleaned and updated various technology in the school system to modernize layouts
   `;
 
   const about4 = `<b>Lego!</b>
   I love building Lego. My wallet does not. In particular I love the Lego Star Wars series. I have the Imperial Star Destroyer (75394), and from the starship collection: Millenium Falcon (75375), Executive Super Star Destroyer (75356), and am awaiting the Venator next year.
   
   <b>Typing</b>
-  I have always enjoyed typing as something simple and repetitive to destress. There are a variety of fun typing games that I have enjoyed. I also explored different layouts, having switched to Colemak for about half a year. It was a cool experience, even though it didn't stick. 
+  I have always enjoyed typing as something simple and repetitive to destress. There are a variety of fun typing games that I have enjoyed; I also explored different layouts, having switched to Colemak for about half a year. Although it didn't stick, it was still a cool experience. 
   
   <b>Stenography</b>
-  I started stenography about two years ago, buying a hobbyist keyboard to get started. Since then I have practiced in my free time. I enjoy learning new words and briefs every day, and am up to 100 wpm at 97.4% accuracy as of 11/2/25. 
+  I started learning stenography just under a year and a half ago, buying a hobbyist keyboard to get started. Since then I have practiced in my free time. While I have no interest in becoming a court reporter, I enjoy the logic and learning new words and chords every day.
+  
+  <b>Gaming</b>
+  I've played my fair share of Minecraft, but I also enjoy co-op games such as Left 4 Dead 2, Lethal Company, Deep Rock Galactic, and Helldivers II.
+  
+  <b>Outdoor Activities</b>
+  I love spending time outdoors. Whether that's going for hikes, biking, roller blading, or just being outside on a sunny day. I also enjoy riding an electric unicycle to get around campus.
   `;
 
-  const about5 = `<b>Alpine Skiing</b>
-  I grew up skiing at the only hill in Rhode Island, taking the occasional trip up to Vermont. Winter has always been my favorite season in part due to this. When I came to RIT and saw they had an alpine ski team, I immediately joined despite never having thought of racing before. I had a blast my first winter in New York, and plan to ski even more this season.
+  const about5 = `<b>Alpine Ski Racing</b>
+  I grew up skiing at the only hill in Rhode Island, taking the occasional trip up to Vermont. Winter has always been my favorite season in part due to this. When I came to RIT and saw they had an alpine ski team, I immediately joined despite never having thought of racing before. I became secretary for the 50+ member team this year, managing records and administrative paperwork. 
 
-  <b>Sailing</b>
+  <b>Competitive Sailing</b>
   I started sailing on a Snapir OD 11 and a Sunfish, but really started learning when I joined my high school's 420 fleet, practicing dinghy sailing as a crew and attending regattas throughout the state. I also joined my local Sea Scouts chapter to gain more experience, sailing keelboats weekly through the summers. One of my favorite memories was sailing for a week and climbing the yardarms on the USCGC Eagle. Some of my favorite classes to sail/race are the C420, Farr 40, Laser, and J110. 
 
   <b>Casual</b>
-  I am currently taking the beginner pickleball wellness course at RIT, and am enjoying it immensely. I am also participating in intramural beginner volleyball on the RITSEC team, which has also been a blast. I plan to play next semester as well, either on the RITSEC team again or with the ski team. I am also looking to get on an intramural soccer or futsal team in the future when my schedule allows, as I grew up playing soccer on my town's competitive team. I also go to both table tennis and badminton weekly clubs as well.
+  I am currently taking the beginner pickleball wellness course at RIT, and am enjoying it immensely. I am also participating in intramural beginner volleyball on the RITSEC team, which has also been a blast. I plan to play next semester as well, either on the RITSEC team again or with the ski team. I am also looking to get on an intramural soccer or futsal team in the future when my schedule allows, as I grew up playing soccer on my town's competitive team. I also go to both table ping pong and badminton weekly clubs as well.
 
   <b>Badminton</b>
-  I had only really played during gym class before coming here, but now that I have had access to a great gym and community to play with, I have found how much I really enjoy playing. I have participated in intramural intermediate badminton for two seasons, along with heading to the gym and playing casual badminton whenever time allows in my schedule.
+  I had only really played during gym class before coming here, but now that I have had access to a great gym and community to play with, I have found how much I really enjoy playing. I've participated in intramural intermediate badminton for two seasons, along with heading to the gym and playing casual badminton whenever time allows.
   `;
 
   const about6 = `<b>RIT Cybersecurity Club</b>
   RITSEC is a large organization made up of mostly cybersecurity majors. Through this club, I have participated in competitions such as Incident Response Security Competition (IRSEC) and Cyber Operations Remediation Assessment (CORA). I have also attended interest groups focusing on topics such as CTF competitions, vulnerability assesments, and offensive security techniques. I have also done mentorships focusing on Terraform and Scapy. Lastly, I attend weekly meetings and workshops to stay current on cybersecurity tools and threats.
   
-  <b>Chinese Conversation Table</b>
-  This club meets weekly to better each other's Mandarin speaking skills by talking about various topics. We also celebrate traditions such as Mid-Autumn Moon Festival, Chinese New Year, and Lantern Festival. I joined this club last year, and took on the role of treasurer this year.
+  <b>Chinese Conversation Table Club</b>
+  This club meets weekly to better each other's Mandarin speaking skills through casual conversation practice. We also celebrate traditions such as Mid-Autumn Moon Festival, Chinese New Year, and Lantern Festival. I joined this club last year, and took on the role of treasurer this year.
   
   <b>Climate and Sustainability Leadership Organization</b>
   Dedicated to furthering sustainability initiatives both at RIT and for individual members, I have attended volunteering opportunities and other things through this club.
@@ -93,12 +105,13 @@
   type Card = {
     heading: string;
     sub?: string;
-    about: string;                 // may contain inline HTML (e.g., <b>)
-    photo?: string;                // single image path (non-project sections)
-    photoGrid?: { src: string; href: string; alt?: string; }[]; // for 4 stacked images
-    height?: number | "auto";      // per-section height control
-    links?: { href: string; label: string; icon: IconName }[];      // first card links
-    extraLinks?: { href: string; label: string; icon: IconName }[]; // bottom links per card
+    about: string;
+    photo?: string;
+    photoGrid?: { src: string; href: string; alt?: string }[];
+    height?: number | "auto";
+    links?: { href: string; label: string; icon: IconName }[];
+    extraLinks?: { href: string; label: string; icon: IconName }[];
+    flipped?: boolean;
   };
 
   const defaultLinks: Card["links"] = [
@@ -118,7 +131,7 @@
   const workExperienceTiles: Required<Card>["photoGrid"] = [
     { src: "/photos/truck.jpg", href: "https://www.rit.edu/fa/auxiliary-services", alt: "RIT Inventory Control" },
     { src: "/photos/yawgoo.jpg", href: "https://yawgoo.com/", alt: "Ski Instructor" },
-    { src: "/photos/sky.jpg", href: "https://riparks.ri.gov/parks/fort-adams-state-park", alt: "Park Ranger" },
+    { src: "/photos/fortadams.avif", href: "https://riparks.ri.gov/parks/fort-adams-state-park", alt: "Park Ranger" },
     { src: "/photos/circuit.png", href: "https://www.circuit-lab.com/", alt: "Circuit Lab Teaching" }
   ];
 
@@ -130,14 +143,26 @@
   ];
 
   const sportsTiles: Required<Card>["photoGrid"] = [
-    { src: "/photos/photo15.jpg", href: "#", alt: "Alpine Skiing" },
-    { src: "/photos/photo16.jpg", href: "#", alt: "Sailing" },
-    { src: "/photos/photo17.jpg", href: "#", alt: "Pickleball" },
-    { src: "/photos/photo18.jpg", href: "#", alt: "Badminton" },
-    { src: "/photos/photo19.jpg", href: "#", alt: "Table Tennis" },
+    { src: "/photos/photo30.jpg", href: "#", alt: "Alpine Skiing" },
+    { src: "/photos/photo31.jpg", href: "#", alt: "Racing" },
+    { src: "/photos/photo28.jpg", href: "#", alt: "Sodus Sailing" },
+    { src: "/photos/photo29.jpg", href: "#", alt: "Sailing at uscga" },
+    { src: "/photos/badminton.png", href: "#", alt: "Table Tennis" },
     { src: "/photos/photo20.jpg", href: "#", alt: "Volleyball" },
     { src: "/photos/photo21.jpg", href: "#", alt: "Ski Racing" },
-    { src: "/photos/photo22.jpg", href: "#", alt: "Sailing Regatta" }
+    { src: "/photos/badminton.png", href: "#", alt: "Badminton" }
+  ];
+
+  // Hobbies uses the SAME 8-photo grid layout/content style as Sports, on the RIGHT side.
+  const hobbiesTiles: Required<Card>["photoGrid"] = [
+    { src: "/photos/lego.jpg", href: "#", alt: "Alpine Skiing" },
+    { src: "/photos/leogsail.jpg", href: "#", alt: "Racing" },
+    { src: "/photos/photo28.jpg", href: "#", alt: "Sodus Sailing" },
+    { src: "/photos/photo29.jpg", href: "#", alt: "Sailing at uscga" },
+    { src: "/photos/stenoss.png", href: "#", alt: "Table Tennis" },
+    { src: "/photos/steno.jpg", href: "#", alt: "Volleyball" },
+    { src: "/photos/helldiver.jpg", href: "#", alt: "Ski Racing" },
+    { src: "/photos/euc.jpg", href: "#", alt: "Badminton" }
   ];
 
   const projectExtraLinks: Card["extraLinks"] = [
@@ -148,10 +173,11 @@
   const sections: Card[] = [
     { heading: name, about: baseAbout, photo: "/photos/photo5.jpg", links: defaultLinks, height: 380 },
     { heading: "Personal Projects", about: about2, photoGrid: projectTiles, extraLinks: projectExtraLinks, height: 720 },
-    { heading: "Work Experience", about: about3, photoGrid: workExperienceTiles, height: 720 },
+    { heading: "Work Experience", about: about3, photoGrid: workExperienceTiles, height: 720, flipped: true },
     { heading: "Sports", about: about5, photoGrid: sportsTiles, height: 720 },
-    { heading: "Clubs", about: about6, photoGrid: clubsTiles, height: 600 },
-    { heading: "Hobbies", about: about4, photo: "/photos/photo18.jpg", height: "auto" }
+    { heading: "Clubs", about: about6, photoGrid: clubsTiles, height: 600, flipped: true },
+    // Hobbies now uses an 8-photo grid (same layout as Sports), placed on the RIGHT (not flipped)
+    { heading: "Hobbies", about: about4, photoGrid: hobbiesTiles, height: 720 }
   ];
 
   const iconPath = (name: IconName) => {
@@ -183,7 +209,7 @@
     <div class="stack">
       {#each sections as s, i}
         <section
-          class="hero card"
+          class="hero card {s.flipped ? 'flipped' : ''}"
           style="height: {s.height === 'auto' ? 'auto' : (s.height ?? CONFIG.cardHeight) + 'px'}"
         >
           <!-- TEXT COLUMN -->
@@ -218,7 +244,10 @@
 
           <!-- IMAGE COLUMN -->
           {#if s.photoGrid}
-            <div class="hero-photo-grid {i === 3 ? 'sports-grid' : 'projects-grid'}" aria-label="section previews">
+            <div
+              class="hero-photo-grid {s.photoGrid && s.photoGrid.length === 8 ? 'sports-grid' : 'projects-grid'}"
+              aria-label="section previews"
+            >
               {#each s.photoGrid as tile}
                 <a class="project-thumb" href={tile.href} target="_blank" rel="noopener noreferrer" aria-label={tile.alt ?? 'Section link'}>
                   <img src={tile.src} alt={tile.alt ?? 'Section image'} loading="lazy" decoding="async" />
@@ -313,27 +342,69 @@
     align-items: stretch;
   }
 
-  /* === Target cards with photo grids (Personal Projects, Work Experience, AND Sports) === */
+  /* Flipped layout for Work Experience and Clubs */
+  .hero.flipped {
+    grid-template-columns: 1fr 1.2fr; /* reverse the ratio */
+  }
+
+  .hero.flipped .hero-text {
+    order: 2; /* move text to the right */
+  }
+
+  .hero.flipped .hero-photo-grid,
+  .hero.flipped .hero-photo {
+    order: 1; /* move images to the left */
+  }
+
+  /* === Target cards with photo grids (Projects, Work, Sports, Clubs, Hobbies) === */
   .stack > section.hero:nth-of-type(2),
   .stack > section.hero:nth-of-type(3),
   .stack > section.hero:nth-of-type(4),
-  .stack > section.hero:nth-of-type(5) {
+  .stack > section.hero:nth-of-type(5),
+  .stack > section.hero:nth-of-type(6) {
     grid-template-columns: 1.5fr 0.9fr; /* more room for text, pushes images right */
   }
+
+  /* Adjust flipped cards to maintain proper spacing */
+  .stack > section.hero.flipped:nth-of-type(3),
+  .stack > section.hero.flipped:nth-of-type(5) {
+    grid-template-columns: 0.9fr 1.5fr; /* flipped ratio for work and clubs */
+  }
+
   .stack > section.hero:nth-of-type(2) .projects-grid,
   .stack > section.hero:nth-of-type(3) .projects-grid,
   .stack > section.hero:nth-of-type(4) .sports-grid,
-  .stack > section.hero:nth-of-type(5) .projects-grid {
+  .stack > section.hero:nth-of-type(5) .projects-grid,
+  .stack > section.hero:nth-of-type(6) .sports-grid {
     margin-left: 1rem;            /* shifts the left border of images to the right */
     min-height: 520px;            /* taller image column for more visual area */
   }
 
+  /* Remove left margin for flipped cards since images are now on the left */
+  .stack > section.hero.flipped:nth-of-type(3) .projects-grid,
+  .stack > section.hero.flipped:nth-of-type(5) .projects-grid {
+    margin-left: 0;
+    margin-right: 1rem;           /* add right margin instead for flipped layout */
+  }
+
   @media (max-width: 880px){
     .hero{ grid-template-columns: 1fr; height: auto !important; }
+    .hero.flipped { grid-template-columns: 1fr; }
+    
+    /* Reset order for mobile */
+    .hero.flipped .hero-text,
+    .hero.flipped .hero-photo-grid,
+    .hero.flipped .hero-photo {
+      order: unset;
+    }
+    
     .stack > section.hero:nth-of-type(2) .projects-grid,
     .stack > section.hero:nth-of-type(3) .projects-grid,
-    .stack > section.hero:nth-of-type(4) .sports-grid {
-      margin-left: 0;             /* reset on mobile */
+    .stack > section.hero:nth-of-type(4) .sports-grid,
+    .stack > section.hero:nth-of-type(5) .projects-grid,
+    .stack > section.hero:nth-of-type(6) .sports-grid {
+      margin-left: 0;             
+      margin-right: 0;            
       min-height: 360px;
     }
   }
@@ -380,12 +451,12 @@
     display: grid; grid-template-rows: repeat(4, 1fr); gap: 8px; height: 100%; min-height: 220px;
   }
 
-  /* 2x4 grid for Sports section */
+  /* 2x4 grid for Sports (and Hobbies now shares this layout via 8 tiles) */
   .hero-photo-grid.sports-grid{
     display: grid; 
     grid-template-columns: 1fr 1fr;
     grid-template-rows: repeat(4, 1fr);
-    gap: 6px; /* Slightly smaller gap for the 2-column layout */
+    gap: 6px;
     height: 100%; 
     min-height: 220px;
   }
@@ -404,7 +475,7 @@
 
   @media (max-width: 880px){ 
     .hero-photo-grid{ min-height: 300px; } 
-    /* On mobile, switch sports grid back to single column */
+    /* On mobile, switch sports/hobbies grid back to single column */
     .hero-photo-grid.sports-grid{
       grid-template-columns: 1fr;
       grid-template-rows: repeat(8, 1fr);

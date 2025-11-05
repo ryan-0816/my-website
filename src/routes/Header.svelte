@@ -189,8 +189,8 @@
 			<li aria-current={page.url.pathname === '/about-me' ? 'page' : undefined}>
 				<a href="/about-me">About Me</a>
 			</li>
-			<li aria-current={page.url.pathname === '/forms' ? 'page' : undefined}>
-				<a href="/forms">Forms</a>
+			<li aria-current={page.url.pathname === '/contact' ? 'page' : undefined}>
+				<a href="/contact">Contact</a>
 			</li>
 		</ul>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
