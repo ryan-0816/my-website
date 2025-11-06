@@ -29,8 +29,8 @@
 
   <b>Northland Hackathon</b>
   • Minnesota's largest hackathon (one of my team members' home state)
-  • Working in a team of 3, we developed a course recommendation webpage based on student academic history
-  • Included webscraping RIT's Student Information System for class information, databasing with PostgreSQL, then integrating a frontend user interface using Svelte. 
+  • Working in a team of 3, we developed an automated course recommendation webpage based on student academic history
+  • Included webscraping RIT's Student Information System and Rate My Professor for class and instructor information, databasing with pgAdmin for PostgreSQL, then integrating a frontend user interface using Vite and Svelte with a Spring framework. 
   `;
 
   const about3 = `<b>Student Inventory Control Specialist | RIT, NY</b>
@@ -125,7 +125,7 @@
     { src: "/terraform.png",  href: "https://github.com/ryan-0816/terraform", alt: "Terraform static hosting" },
     { src: "/photos/photo10.jpg", href: "https://github.com/ryan-0816/Scripts", alt: "Network intrusion monitor" },
     { src: "/ski website.png", href: "https://github.com/ryan-0816/ski", alt: "Ski Club Website" },
-    { src: "/photos/photo12.jpg", href: "#", alt: "Hackathon demo" }
+    { src: "/photos/northland.png", href: "#", alt: "Hackathon demo" }
   ];
 
   const workExperienceTiles: Required<Card>["photoGrid"] = [
@@ -139,7 +139,7 @@
     { src: "/photos/ritsec.png", href: "https://www.rit.edu/fa/auxiliary-services", alt: "RIT Inventory Control" },
     { src: "/photos/cct.png", href: "https://yawgoo.com/", alt: "Ski Instructor" },
     { src: "/photos/sky.jpg", href: "https://riparks.ri.gov/parks/fort-adams-state-park", alt: "Park Ranger" },
-    { src: "/photos/circuit.png", href: "https://www.circuit-lab.com/", alt: "Circuit Lab Teaching" }
+    { src: "/photos/ampersand.jpg", href: "https://www.circuit-lab.com/", alt: "Circuit Lab Teaching" }
   ];
 
   const sportsTiles: Required<Card>["photoGrid"] = [
@@ -149,7 +149,7 @@
     { src: "/photos/photo29.jpg", href: "#", alt: "Sailing at uscga" },
     { src: "/photos/eagle1.jpg", href: "#", alt: "Table Tennis" },
     { src: "/photos/photo20.jpg", href: "#", alt: "Volleyball" },
-    { src: "/photos/photo21.jpg", href: "#", alt: "Ski Racing" },
+    { src: "/photos/intramurals.png", href: "#", alt: "Intramural Dashboard" },
     { src: "/photos/badminton.png", href: "#", alt: "Badminton" }
   ];
 
