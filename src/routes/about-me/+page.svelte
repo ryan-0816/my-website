@@ -155,14 +155,14 @@
 
   // Hobbies uses the SAME 8-photo grid layout/content style as Sports, on the RIGHT side.
   const hobbiesTiles: Required<Card>["photoGrid"] = [
-    { src: "/photos/lego.jpg", href: "#", alt: "Alpine Skiing" },
-    { src: "/photos/leogsail.jpg", href: "#", alt: "Racing" },
+    { src: "/photos/lego.jpg", href: "#", alt: "Lego ISD" },
+    { src: "/photos/leogsail.jpg", href: "#", alt: "Lego Sailboat" },
     { src: "/photos/photo28.jpg", href: "#", alt: "Sodus Sailing" },
     { src: "/photos/photo29.jpg", href: "#", alt: "Sailing at uscga" },
-    { src: "/photos/stenoss.png", href: "#", alt: "Table Tennis" },
-    { src: "/photos/steno.jpg", href: "#", alt: "Volleyball" },
-    { src: "/photos/helldiver.jpg", href: "#", alt: "Ski Racing" },
-    { src: "/photos/euc.jpg", href: "#", alt: "Badminton" }
+    { src: "/photos/stenoss.png", href: "#", alt: "Monkeytype ss" },
+    { src: "/photos/steno.jpg", href: "#", alt: "Steno and case" },
+    { src: "/photos/helldiver.jpg", href: "#", alt: "Helldiver Salute" },
+    { src: "/photos/euc.jpg", href: "#", alt: "Electric Unicycle" }
   ];
 
   const projectExtraLinks: Card["extraLinks"] = [
@@ -176,7 +176,6 @@
     { heading: "Work Experience", about: about3, photoGrid: workExperienceTiles, height: 720, flipped: true },
     { heading: "Sports", about: about5, photoGrid: sportsTiles, height: 720 },
     { heading: "Clubs", about: about6, photoGrid: clubsTiles, height: 600, flipped: true },
-    // Hobbies now uses an 8-photo grid (same layout as Sports), placed on the RIGHT (not flipped)
     { heading: "Hobbies", about: about4, photoGrid: hobbiesTiles, height: 720 }
   ];
 
