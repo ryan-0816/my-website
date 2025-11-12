@@ -177,7 +177,7 @@
 
   const sections: Card[] = [
     { heading: name, about: baseAbout, photo: "/photos/photo5.jpg", links: defaultLinks, height: 380 },
-    { heading: "Personal Projects", about: about2, photoGrid: projectTiles, extraLinks: projectExtraLinks, height: 720, clickableImages: true },
+    { heading: "Personal Projects", about: about2, photoGrid: projectTiles, height: 720, clickableImages: true },
     { heading: "Work Experience", about: about3, photoGrid: workExperienceTiles, height: 720, flipped: true, clickableImages: false },
     { heading: "Sports", about: about5, photoGrid: sportsTiles, height: 720, clickableImages: false },
     { heading: "Clubs", about: about6, photoGrid: clubsTiles, height: 600, flipped: true, clickableImages: false },
