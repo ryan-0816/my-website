@@ -11,7 +11,7 @@
   };
 
   export let name = "RYAN TAGEN";
-  const tagline = "Cybersecurity BS/MS at Rochester Institute of Technology";
+  const tagline = "Cybersecurity student at Rochester Institute of Technology";
 
   const images: string[] = [
     "/photos/photo1.jpg","/photos/photo2.jpg","/photos/photo3.jpg","/photos/photo4.jpg",
